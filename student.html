@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BNK Care Center — แจ้งมาสาย</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#c8102e">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="student.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="แจ้งมาสาย">
+<script>try{if(localStorage.getItem("bnkcc_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/cc.css?v=1.02.0.091126">
+</head><body><div class="wrap">
+<div class="top" id="top"></div>
+<img class="ban" src="assets/banner.jpg" alt="ระบบบันทึกพฤติกรรมการมาสาย นักเรียนโรงเรียนบุ่งคล้านคร" width="1300" height="433">
+<div id="v"></div>
+</div>
+<script src="assets/cc.js?v=1.02.0.091126"></script>
+<script>
+/* หน้านักเรียน — แจ้งมาสายด้วยตนเอง (ไม่ต้องล็อกอิน) · เลือกห้อง → พิมพ์ชื่อ (ขึ้นชื่อใกล้เคียง ไม่แสดงทั้งห้อง) → เลือกเหตุผล
+   ประหยัด: เปิดหน้า 1 ครั้ง (sboot) + โหลดรายชื่อเฉพาะห้องที่เลือก (จำไว้ในหน้า) + ส่ง 1 ครั้ง · ไม่มีการโหลดซ้ำอัตโนมัติ */
+(function(){
+const {$,esc,toast,api}=CC;
+let B=null,room="",names=null,nv="",q="",pick=-1,reason="",other="",busy=false,done=null,ROOMS={};
+CC.chrome("แจ้งมาสาย","สำหรับนักเรียน");
+async function start(){
+  $("#v").innerHTML='<div class="card mut">กำลังโหลด…</div>';
+  try{B=await api("sboot");render()}catch(e){$("#v").innerHTML=`<div class="card"><div class="mut">${esc(e.message)}</div><button class="btn" id="retry" style="margin-top:8px">ลองใหม่</button></div>`}
+}
+function clock(){return B.selfOn?`<div class="clock${B.open?"":" off"}">● ${B.open?"เปิดให้กรอก":"ปิดอยู่ · เปิดให้กรอก"} ${esc(B.from)}–${esc(B.to)} น. · กรอกได้วันละ 1 ครั้ง</div>`:""}
+function render(){
+  if(!B.selfOn){$("#v").innerHTML='<div class="card center" style="padding:20px"><b>ปิดการแจ้งมาสายด้วยตนเองชั่วคราว</b><div class="mut" style="margin-top:6px">ติดต่อสภานักเรียนหรือครูกิจการนักเรียน</div></div>';return}
+  if(done){$("#v").innerHTML=clock()+`<div class="card done"><div class="big">✅</div><b>บันทึกแล้ว</b><div>${esc(done.name)} · ${esc(done.room)}</div><div class="mut">${esc(CC.thD(done.date))} เวลา ${esc(done.time)} น.</div></div><button type="button" class="btn ghost blk" id="next">แจ้งคนถัดไป</button>`;return}
+  if(!B.open){$("#v").innerHTML=clock()+'<div class="card center" style="padding:20px"><b>ยังไม่อยู่ในช่วงเวลาที่เปิดให้กรอก</b><div class="mut" style="margin-top:6px">เปิดให้แจ้งมาสายเวลา '+esc(B.from)+'–'+esc(B.to)+' น.</div><button type="button" class="btn ghost" id="retry" style="margin-top:12px">ลองใหม่</button></div>';return}
+  const R=B.reasons||[];
+  $("#v").innerHTML=clock()+`<div class="card">
+  <div class="step"><i>1</i>เลือกห้อง</div><select id="rm" class="blk" style="margin-bottom:12px"><option value="">— เลือกห้อง —</option>${B.rooms.map(r=>`<option value="${esc(r[0])}"${r[0]===room?" selected":""}>${esc(r[1])}</option>`).join("")}</select>
+  <div class="step"><i>2</i>พิมพ์ชื่อของตัวเอง</div><div id="nm"></div>
+  <div class="step" style="margin-top:12px"><i>3</i>เหตุผลที่มาสาย</div>
+  <div class="rs">${R.map(x=>`<button type="button" data-rs="${esc(x)}" class="${reason===x?"on":""}">${esc(x)}</button>`).join("")}<button type="button" data-rs="__o" class="${reason==="__o"?"on":""}">อื่นๆ (พิมพ์เอง)</button></div>
+  ${reason==="__o"?`<input id="ot" class="blk" maxlength="100" placeholder="พิมพ์เหตุผล" value="${esc(other)}" style="margin-bottom:8px">`:""}
+  <button type="button" class="btn blk" id="send" style="margin-top:6px">ส่งข้อมูลมาสาย</button><div class="red center" id="msg" style="margin-top:8px"></div></div>`;
+  paintName();paintSend();
+}
+function paintName(){
+  const b=$("#nm");if(!b)return;
+  if(!room){b.innerHTML='<input class="blk" disabled placeholder="เลือกห้องก่อน">';return}
+  if(!names){b.innerHTML='<div class="mut">กำลังโหลดรายชื่อห้อง…</div>';return}
+  if(pick>=0){b.innerHTML=`<div class="sel"><span>✓ ${esc(names[pick])}</span><button type="button" id="unpick">เปลี่ยน</button></div>`;return}
+  const a=document.activeElement&&document.activeElement.id==="nq";
+  b.innerHTML=`<input id="nq" class="blk" placeholder="พิมพ์ชื่อ (ไม่ต้องใส่คำนำหน้า)" value="${esc(q)}" autocomplete="off"><div id="sg"></div><div class="mut" style="margin-top:4px">พิมพ์อย่างน้อย 2 ตัวอักษร แล้วแตะชื่อของตัวเอง</div>`;
+  paintSug();if(a){const i=$("#nq");i.focus();i.setSelectionRange(i.value.length,i.value.length)}
+}
+function paintSug(){
+  const b=$("#sg");if(!b)return;
+  if(CC.norm(q).length<2){b.innerHTML="";return}
+  const L=names.map((n,i)=>[n,i]).filter(x=>CC.hit(x[0],q)).slice(0,6);
+  b.innerHTML=`<div class="sug">${L.map(x=>`<button type="button" data-nm="${x[1]}"><span>${CC.mark(x[0],q)}</span></button>`).join("")||'<div class="empty" style="padding:10px">ไม่พบชื่อในห้องนี้ — ตรวจสอบห้องหรือการสะกด</div>'}</div>`;
+}
+function paintSend(){const s=$("#send");if(!s)return;const r=reason==="__o"?other.trim():reason;s.disabled=busy||!room||pick<0||!r;s.textContent=busy?"กำลังส่ง…":"ส่งข้อมูลมาสาย"}
+async function loadRoom(id){
+  names=null;pick=-1;paintName();paintSend();
+  try{if(!ROOMS[id]){const d=await api("sroom",{roomId:id});ROOMS[id]=d;nv=d.v}if(room===id){names=ROOMS[id].list;nv=ROOMS[id].v;paintName()}}catch(e){toast(e.message)}
+}
+async function send(){
+  const r=reason==="__o"?other.trim():reason;if(busy||pick<0||!r)return;busy=true;paintSend();const m=$("#msg");m.textContent="";
+  try{done=await api("self",{roomId:room,i:pick,name:names[pick],v:nv,reason:r});room="";names=null;pick=-1;q="";reason="";other="";render()}
+  catch(e){if(e.code==="stale"){ROOMS={};const id=room;loadRoom(id)}else if(e.code==="closed"){B.open=false;render();return}m.textContent=e.message}
+  finally{busy=false;paintSend()}
+}
+document.addEventListener("change",e=>{if(e.target.id==="rm"){room=e.target.value;q="";if(room)loadRoom(room);else{names=null;pick=-1;paintName();paintSend()}}});
+document.addEventListener("input",e=>{if(e.target.id==="nq"){q=e.target.value;paintSug()}else if(e.target.id==="ot"){other=e.target.value;paintSend()}});
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.id==="retry"){start();return}
+  if(t.id==="next"){done=null;render();return}
+  const n=t.closest("[data-nm]");if(n){pick=+n.dataset.nm;paintName();paintSend();return}
+  if(t.closest("#unpick")){pick=-1;paintName();paintSend();const i=$("#nq");if(i)i.focus();return}
+  const rs=t.closest("[data-rs]");if(rs){reason=rs.dataset.rs;document.querySelectorAll("[data-rs]").forEach(b=>b.classList.toggle("on",b===rs));const s=document.querySelector(".rs");const ot=$("#ot");if(reason==="__o"&&!ot){s.insertAdjacentHTML("afterend",`<input id="ot" class="blk" maxlength="100" placeholder="พิมพ์เหตุผล" value="${esc(other)}" style="margin-bottom:8px">`);$("#ot").focus()}else if(reason!=="__o"&&ot)ot.remove();paintSend();return}
+  if(t.closest("#send")){send();return}
+});
+start();
+})();
+</script>
+</body></html>

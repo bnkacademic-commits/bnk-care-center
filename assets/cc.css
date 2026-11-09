@@ -1,0 +1,124 @@
+/* BNK Care Center 1.02.0 — สไตล์รวมของ 3 หน้า (ครู · สภานักเรียน · นักเรียน) · ค่าเริ่มต้นธีมสว่าง */
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1d2330;--mut:#667085;--ln:#e3e6ec;--pri:#c8102e;--prib:#fdeaea;--acc:#ffc928;--navy:#2b1a6e;--navyb:#efe9ff;--red:#c62828;--redb:#fde8e8;--grn:#1b7a3d;--grnb:#e3f5ea;--yel:#9a6700;--yelb:#fff4d6;--sh:0 8px 24px rgba(16,24,40,.12);color-scheme:light}
+:root[data-theme="dark"]{--bg:#14171d;--card:#1e232c;--tx:#eceff4;--mut:#9aa4b5;--ln:#2e3542;--pri:#ff6b6b;--prib:#3d2220;--acc:#ffc928;--navy:#b9a8ff;--navyb:#2b2547;--red:#ff8a80;--redb:#42221f;--grn:#6fd49a;--grnb:#1c3a29;--yel:#f5c451;--yelb:#3a3020;--sh:0 8px 24px rgba(0,0,0,.45);color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 Sarabun,"Noto Sans Thai",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+.wrap{max-width:720px;width:100%;margin:0 auto;padding:12px 12px 4px;flex:1}
+button{cursor:pointer}
+.mut{color:var(--mut);font-size:13px}.red{color:var(--red);font-weight:600}
+select,input,textarea{font:inherit;padding:9px 10px;border:1px solid var(--ln);border-radius:10px;background:var(--card);color:var(--tx);min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--pri) 45%,transparent);outline-offset:0;border-color:var(--pri)}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.btn{padding:10px 14px;border-radius:10px;border:1px solid var(--pri);background:var(--pri);color:#fff;font:inherit;font-weight:700}
+.btn.blk{display:block;width:100%}.btn:disabled{opacity:.55;cursor:default}
+.btn.ghost{background:var(--card);color:var(--tx);border-color:var(--ln)}
+.link{background:none;border:0;color:var(--mut);font:inherit;text-decoration:underline;padding:4px 0}
+.ban{display:block;width:100%;height:auto;border-radius:14px;margin-bottom:8px;aspect-ratio:1300/433;background:var(--card)}
+.sub{color:var(--mut);font-size:13px}
+
+/* แถบบน: ชื่อหน้า + ปุ่มติดตั้งแอป / ธีม */
+.top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.top .ttl{flex:1;min-width:0;display:flex;align-items:center;gap:8px;font-weight:700}
+.top .ttl img{width:28px;height:28px;border-radius:8px}
+.top .ttl small{display:block;font-weight:400;color:var(--mut);font-size:12px;line-height:1.2}
+.ib{width:38px;height:38px;border-radius:11px;border:1px solid var(--ln);background:var(--card);color:var(--tx);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ib svg{width:18px;height:18px}.ib[hidden]{display:none}
+.st{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--grnb);color:var(--grn);flex:none}.st.off{background:var(--redb);color:var(--red)}
+
+/* ผู้ใช้ / ลิงก์ไปหน้าอื่น / แท็บ */
+.who{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--mut);margin:0 2px 8px}
+.who b{color:var(--tx)}
+.role{font-size:11px;font-weight:700;border-radius:99px;padding:2px 8px;background:var(--navyb);color:var(--navy);margin-left:4px;white-space:nowrap}
+.role.care{background:var(--prib);color:var(--pri)}
+.links{display:flex;gap:6px;margin-bottom:8px}.links a{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:700;padding:8px 4px;border-radius:10px;background:var(--card);border:1px dashed var(--navy);color:var(--navy);text-decoration:none}
+.links a svg{width:16px;height:16px}
+.tabs{display:flex;gap:6px;margin:4px 0 10px}.tabs button{flex:1;padding:10px;border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:10px;font:inherit;font-weight:600}
+.tabs button.on{background:var(--pri);color:#fff;border-color:var(--pri);box-shadow:inset 0 -3px 0 var(--acc)}
+
+/* ตัวเลือกนักเรียน (กรองห้อง + ค้นชื่อ) + รายชื่อที่เลือก */
+.flt{display:flex;gap:6px;margin-bottom:6px}.flt select{width:40%;flex:none}.flt input{flex:1}
+.res{max-height:min(46vh,420px);overflow-y:auto;margin:0 -4px;padding:0 4px}
+.r{display:flex;align-items:center;gap:8px;padding:7px 2px;border-top:1px solid var(--ln);font-size:15px}.r:first-child{border-top:0}
+.r .rm{color:var(--mut);font-size:12px;width:52px;flex:none}.r .n{flex:1;min-width:0;overflow-wrap:anywhere}
+.add{font:inherit;font-size:12.5px;font-weight:700;border:1px solid var(--pri);color:var(--pri);background:var(--card);border-radius:99px;padding:3px 11px;flex:none;white-space:nowrap}
+.add.in{background:var(--pri);color:#fff}
+.tagx{font-size:12px;color:var(--red);font-weight:700;flex:none}
+.bk{background:color-mix(in srgb,var(--acc) 10%,var(--card));border:1.5px solid var(--acc);border-radius:12px;padding:9px 11px;margin-bottom:10px}
+.bk h4{margin:0 0 6px;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+.tg{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--ln);border-radius:99px;padding:2px 4px 2px 10px;font-size:13.5px;margin:0 4px 6px 0}
+.tg button{border:0;width:20px;height:20px;border-radius:50%;background:var(--ln);color:var(--mut);font-size:12px;line-height:1;padding:0}
+.empty{color:var(--mut);font-size:13px;padding:4px 0}
+
+/* หัก / เพิ่มคะแนน */
+.sw{display:flex;gap:6px;margin:4px 0 8px}.sw button{flex:1;padding:9px;border-radius:10px;font:inherit;font-weight:700;border:1px solid var(--ln);background:var(--card);color:var(--tx)}
+.sw button.m.on{background:var(--redb);color:var(--red);border-color:var(--red)}.sw button.p.on{background:var(--grnb);color:var(--grn);border-color:var(--grn)}
+.items{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}.items button{border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:99px;padding:6px 12px;font:inherit;font-size:14px}
+.items button.on.m{background:var(--red);border-color:var(--red);color:#fff}.items button.on.p{background:var(--grn);border-color:var(--grn);color:#fff}
+.cus{display:flex;gap:6px;margin-bottom:8px}.cus input:first-child{flex:1}.cus input:last-child{width:92px}
+.fld{width:100%;margin-bottom:8px}
+
+/* รายการ / ประวัติ */
+.hi{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--ln);font-size:14px}.hi:first-child{border-top:0}
+.pt{flex:none;min-width:46px;text-align:center;font-weight:800;border-radius:8px;padding:2px 4px;background:var(--redb);color:var(--red)}.pt.p{background:var(--grnb);color:var(--grn)}.pt.t{background:var(--navyb);color:var(--navy);font-weight:700}
+.hi small{display:block;color:var(--mut);font-size:12px}.hi .grow{flex:1;min-width:0}
+.x{margin-left:auto;background:none;border:0;color:var(--red);font:inherit;font-size:13px;text-decoration:underline;padding:2px 0;flex:none}
+.hd{display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-bottom:2px}
+
+/* คะแนน */
+.srow{display:flex;align-items:center;gap:10px;width:100%;padding:10px 4px;border:0;border-top:1px solid var(--ln);background:none;color:var(--tx);font:inherit;text-align:left}.srow:first-child{border-top:0}
+.srow .no{width:28px;color:var(--mut);text-align:right;flex:none}.srow .nm{flex:1}.srow .sc{font-weight:800;min-width:46px;text-align:center;border-radius:8px;padding:2px 6px}
+.lv-good{background:var(--grnb);color:var(--grn)}.lv-fair{background:var(--yelb);color:var(--yel)}.lv-low{background:var(--redb);color:var(--red)}
+.st1{display:flex;gap:14px;align-items:center}
+.ring{width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.ring div{width:70px;height:70px;border-radius:50%;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}.ring b{font-size:25px}.ring small{font-size:11px;color:var(--mut)}
+.lvp{display:inline-block;font-weight:700;font-size:12px;border-radius:99px;padding:2px 10px}
+.back{background:none;border:0;color:var(--pri);font:inherit;font-weight:600;padding:4px 0 8px}
+
+/* PIN */
+.pin{text-align:center;padding:20px 14px}.pin b.t{font-size:18px}
+.dots{display:flex;gap:9px;justify-content:center;margin:14px 0 16px}.dots i{width:40px;height:48px;border:2px solid var(--ln);border-radius:12px;background:var(--card);display:flex;align-items:center;justify-content:center}
+.dots i.f{border-color:var(--pri)}.dots i.f::after{content:"";width:12px;height:12px;border-radius:50%;background:var(--tx)}.dots i.x{opacity:.45;border-style:dashed}
+.kp{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;max-width:290px;margin:0 auto}.kp button{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:13px 0;font:inherit;font-size:22px;color:var(--tx)}
+.kp button.ok{background:var(--pri);border-color:var(--pri);color:#fff;font-size:17px;font-weight:700}.kp button.dl{font-size:16px;color:var(--mut)}.kp button:disabled{opacity:.45}
+
+/* ผู้บันทึก (สภา) */
+.rec{display:flex;align-items:center;gap:9px;background:var(--navyb);border-radius:12px;padding:8px 10px;margin-bottom:10px;font-size:14px}
+.av{width:32px;height:32px;border-radius:50%;background:var(--navy);color:var(--card);display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+.rec .grow{flex:1;min-width:0}.rec button{background:none;border:0;color:var(--navy);font:inherit;text-decoration:underline;flex:none}
+
+/* ค้นชื่อแบบขึ้นชื่อใกล้เคียง */
+.sug{border:1px solid var(--ln);border-radius:10px;background:var(--card);margin-top:4px;box-shadow:var(--sh);overflow:hidden}
+.sug button{display:flex;gap:8px;width:100%;text-align:left;padding:10px 12px;border:0;border-top:1px solid var(--ln);background:none;color:var(--tx);font:inherit}.sug button:first-child{border-top:0}
+.sug button:hover,.sug button:focus{background:var(--prib);outline:0}.sug u{text-decoration:none;font-weight:800;color:var(--pri)}.sug .mut{margin-left:auto}
+
+/* หน้านักเรียน */
+.step{display:flex;align-items:center;gap:7px;font-weight:700;font-size:15px;margin:2px 0 6px}.step i{font-style:normal;width:22px;height:22px;border-radius:50%;background:var(--pri);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+.blk{display:block;width:100%}
+.rs{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:4px 0 8px}.rs button{border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:10px;padding:10px 6px;font:inherit;font-size:14px}
+.rs button.on{border-color:var(--pri);background:var(--prib);color:var(--pri);font-weight:700}
+.clock{text-align:center;font-size:13px;color:var(--grn);background:var(--grnb);border-radius:99px;padding:4px 10px;margin-bottom:10px}.clock.off{color:var(--red);background:var(--redb)}
+.sel{display:flex;align-items:center;gap:8px;border:1.5px solid var(--grn);background:var(--grnb);color:var(--grn);border-radius:10px;padding:9px 12px;font-weight:700}.sel span{flex:1}.sel button{background:none;border:0;color:inherit;text-decoration:underline;font:inherit;font-weight:400}
+.done{text-align:center;padding:18px 12px;background:var(--grnb);border-color:color-mix(in srgb,var(--grn) 40%,transparent)}
+.done .big{font-size:40px;line-height:1}.done b{color:var(--grn);font-size:19px;display:block;margin:4px 0}
+
+/* ท้ายเว็บ: เลขรุ่น (กดได้) */
+.foot{text-align:center;color:var(--mut);font-size:12px;padding:10px 12px calc(14px + env(safe-area-inset-bottom,0px))}
+.vw{position:relative;display:inline-block}
+.vb{background:none;border:0;color:var(--mut);font:inherit;font-weight:600;text-decoration:underline dotted;text-underline-offset:3px;padding:2px 4px}
+.vm{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);min-width:210px;background:var(--card);border:1px solid var(--ln);border-radius:12px;box-shadow:var(--sh);overflow:hidden;z-index:40;text-align:left}
+.vm[hidden]{display:none}.vm button{display:flex;gap:8px;align-items:center;width:100%;padding:10px 14px;border:0;border-top:1px solid var(--ln);background:none;color:var(--tx);font:inherit;font-size:14px;font-weight:600}.vm button:first-child{border-top:0}.vm button:hover{background:var(--prib)}
+.vm svg{width:16px;height:16px;color:var(--pri)}
+
+/* การ์ดแจ้งเวอร์ชันใหม่ · ป็อปอัป · toast */
+.upd{position:fixed;z-index:90;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:340px;margin-left:auto;background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:16px;box-shadow:var(--sh);padding:14px}
+.upd b{display:flex;align-items:center;gap:8px;font-size:15px;padding-right:30px}.upd b svg{width:20px;height:20px;color:var(--grn)}
+.upd p{margin:4px 0 10px;color:var(--mut);font-size:13px}.upd .row{display:flex;justify-content:flex-end;gap:8px}
+.upd .row button{padding:7px 12px;border-radius:9px;font:inherit;font-size:14px;font-weight:700;border:1px solid var(--ln);background:var(--bg);color:var(--tx)}.upd .row .go{background:var(--grn);border-color:var(--grn);color:#fff}
+.upd .cl{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:8px;border:0;background:var(--pri);color:#fff;font-weight:700}
+.mdl{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:80;display:flex;align-items:center;justify-content:center;padding:16px}
+.mdl[hidden]{display:none}.mdl .box{background:var(--card);color:var(--tx);border-radius:18px;max-width:420px;width:100%;padding:18px;box-shadow:var(--sh);max-height:90vh;overflow-y:auto}
+.mdl .hd2{display:flex;gap:10px;align-items:center;margin-bottom:10px}.mdl .hd2 img{width:44px;height:44px;border-radius:11px}
+.mdl ol{padding-left:20px;margin:6px 0 14px}.mdl li{margin:5px 0}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:#222;color:#fff;padding:9px 14px;border-radius:10px;display:none;font-size:14px;z-index:95;max-width:calc(100% - 32px);text-align:center}
+.lgx input{width:100%;margin:6px 0}.lgx .btn{width:100%;margin-top:6px}
+.center{text-align:center}

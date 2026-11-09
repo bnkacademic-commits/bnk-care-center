@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BNK Care Center — สภานักเรียน</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#c8102e">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="council.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="สภานักเรียน">
+<script>try{if(localStorage.getItem("bnkcc_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/cc.css?v=1.02.0.091126">
+</head><body><div class="wrap">
+<div class="top" id="top"></div>
+<img class="ban" src="assets/banner.jpg" alt="ระบบบันทึกพฤติกรรมการมาสาย นักเรียนโรงเรียนบุ่งคล้านคร" width="1300" height="433">
+<div id="v"></div>
+</div>
+<script src="assets/cc.js?v=1.02.0.091126"></script>
+<script>
+/* หน้าสภานักเรียน — ใส่ PIN ครั้งเดียว · เลือกผู้บันทึกจากรายชื่อสภานักเรียน · เช็คมาสายทีละหลายคน
+   ประหยัด: รายชื่อนักเรียนจำไว้ในเครื่อง · รายการวันนี้โหลดใหม่ทุก 2 นาทีเฉพาะตอนเปิดหน้าจออยู่ · ไม่ได้ใช้งาน 10 นาที = หยุดโหลด */
+(function(){
+const {$,esc,toast,api,store}=CC;
+const POLL_MS=120000,IDLE_MS=600000;
+let token=store.get("token"),rec=store.get("rec"),R=[],COUNCIL=[],RECS=[],today="",picker=null,busy=false,pinIn="",lastUse=Date.now(),lastLoad=0,paused=false,recQ="";
+CC.chrome("หน้าสภานักเรียน","บันทึกนักเรียนมาสาย");
+CC.setErr(e=>{if(e.code==="auth")logout(token?"รหัส PIN ถูกเปลี่ยน กรุณาใส่รหัสใหม่":"");else if(e.code==="nopin")noPin(e.message)});
+const late=()=>{const m={};RECS.forEach(r=>m[r.key]=r);return m};
+
+// ---------- PIN ----------
+function pinView(msg){
+  pinIn="";CC.status(false,"");
+  $("#v").innerHTML=`<div class="card pin"><b class="t">ใส่รหัส PIN</b><div class="mut" style="margin-top:4px">ขอรหัสจากครูกิจการนักเรียน · ใส่ครั้งเดียว เครื่องนี้จะจำไว้</div><div class="dots" id="pd"></div><div class="kp">${[1,2,3,4,5,6,7,8,9].map(n=>`<button type="button" data-pn="${n}">${n}</button>`).join("")}<button type="button" class="dl" data-pn="del">ลบ</button><button type="button" data-pn="0">0</button><button type="button" class="ok" data-pn="ok">ตกลง</button></div><div class="red" style="margin-top:10px">${esc(msg||"")}</div></div>`;
+  pinPaint();
+}
+function pinPaint(){const d=$("#pd");if(!d)return;let h="";for(let i=0;i<6;i++)h+=`<i class="${i<pinIn.length?"f":(i>=4?"x":"")}"></i>`;d.innerHTML=h;const ok=document.querySelector('[data-pn="ok"]');if(ok)ok.disabled=pinIn.length<4}
+function pinKey(k){if(k==="del")pinIn=pinIn.slice(0,-1);else if(k==="ok"){if(pinIn.length>=4)login(pinIn);return}else if(pinIn.length<6)pinIn+=k;pinPaint();if(pinIn.length===6)login(pinIn)}
+async function login(pin){document.querySelectorAll(".kp button").forEach(b=>b.disabled=true);try{const d=await api("pin",{pin});token=d.token||"";store.set("token",token);await start()}catch(e){if(e.code!=="nopin")pinView(e.message)}}
+function logout(msg){token="";store.set("token","");pinView(msg)}
+function noPin(msg){$("#v").innerHTML=`<div class="card"><b>ยังเปิดใช้งานไม่ได้</b><div class="mut" style="margin-top:6px">${esc(msg||"")}</div><button class="btn" id="retry" style="margin-top:10px">ลองใหม่</button></div>`}
+
+// ---------- เริ่ม ----------
+async function start(){
+  CC.status(false,"กำลังเชื่อมต่อ…");$("#v").innerHTML='<div class="card mut">กำลังโหลดรายชื่อนักเรียน…</div>';
+  try{
+    const [t,r]=await Promise.all([api("today",{token}),CC.roster({token})]);
+    R=r.rooms;applyToday(t);CC.status(true,"ออนไลน์");
+    if(!R.length){$("#v").innerHTML='<div class="card mut">ยังไม่พบรายชื่อนักเรียนในระบบ</div>';return}
+    render();
+  }catch(e){
+    if(e.code==="auth"||e.code==="nopin")return;
+    CC.status(false,"เชื่อมต่อไม่ได้");
+    $("#v").innerHTML=`<div class="card"><div class="mut">${esc(e.message)}</div><button class="btn" id="retry" style="margin-top:8px">ลองใหม่</button></div>`;
+  }
+}
+function applyToday(t){today=t.today;RECS=t.records;COUNCIL=t.council||[];lastLoad=Date.now()}
+const recInfo=()=>COUNCIL.find(c=>c[0]===rec);
+function render(){
+  if(!recInfo())return recView();
+  const c=recInfo();
+  $("#v").innerHTML=`<div class="rec"><span class="av">${esc(c[1].replace(CC.PRE,"").charAt(0))}</span><span class="grow">ผู้บันทึก: <b>${esc(c[1])}</b> <span class="mut">· ${esc(c[2])}</span></span><button type="button" id="chg">เปลี่ยน</button></div><div id="pk"></div><div class="card" id="today"></div>`;
+  picker=CC.Picker($("#pk"),{rooms:R,title:"รอบันทึกมาสาย",block:k=>late()[k]?"สายแล้ววันนี้":"",onChange:paintAct});
+  paintAct();paintToday();
+}
+function paintAct(){
+  const b=picker&&picker.actions();if(!b)return;const n=picker.sel().length;
+  b.innerHTML=`<button type="button" class="btn blk" id="mk" style="margin-top:4px"${!n||busy?" disabled":""}>${busy?"กำลังบันทึก…":n?"บันทึกมาสาย "+n+" คน":"เลือกนักเรียนที่มาสาย"}</button>`;
+}
+function paintToday(){
+  const b=$("#today");if(!b)return;
+  b.innerHTML=`<div class="hd"><span>มาสายวันนี้ · ${RECS.length} คน</span><span class="mut">${esc(CC.thD(today))}</span></div>`+(RECS.length?RECS.map(r=>`<div class="hi"><span class="pt t">${esc(r.time||"")}</span><span class="grow">${esc(r.name)} <span class="mut">· ${esc(r.room)} เลขที่ ${esc(r.no)}</span><small>${r.reason?esc(r.reason)+" · ":""}บันทึกโดย ${esc(r.by||"-")}</small></span><button type="button" class="x" data-del="${esc(r.key)}">ลบ</button></div>`).join(""):'<div class="empty">ยังไม่มีนักเรียนมาสาย</div>');
+}
+// ---------- เลือกผู้บันทึก ----------
+function recView(){
+  $("#v").innerHTML=`<div class="card"><div style="font-weight:800;font-size:17px;margin-bottom:6px">ใครเป็นผู้บันทึก?</div>${COUNCIL.length?`<input id="rq" type="search" placeholder="พิมพ์ชื่อสมาชิกสภานักเรียน" value="${esc(recQ)}" autocomplete="off" style="width:100%"><div id="rl" style="margin-top:8px"></div>`:'<div class="mut">ยังไม่มีรายชื่อสมาชิกสภานักเรียน — ครูกิจการนักเรียนเพิ่มได้ที่เว็บส่งงาน › กิจการนักเรียน › ตั้งค่า</div>'}</div>`;
+  paintRec();
+}
+function paintRec(){
+  const b=$("#rl");if(!b)return;const L=COUNCIL.filter(c=>CC.hit(c[1],recQ));
+  b.innerHTML=(recQ?`<div class="sug">${L.map(c=>`<button type="button" data-rec="${esc(c[0])}"><span>${CC.mark(c[1],recQ)}</span><span class="mut">${esc(c[2])}</span></button>`).join("")||'<div class="empty" style="padding:10px">ไม่พบชื่อ</div>'}</div>`
+    :`<div class="mut" style="margin-bottom:4px">สมาชิกสภานักเรียนทั้งหมด (${COUNCIL.length} คน)</div>`+L.map(c=>`<div class="r"><span class="n">${esc(c[1])}</span><span class="mut">${esc(c[2])}</span><button type="button" class="add" data-rec="${esc(c[0])}">เลือก</button></div>`).join(""));
+}
+// ---------- บันทึก / ลบ ----------
+async function mark(){
+  const sel=picker.sel();if(!sel.length||busy)return;busy=true;paintAct();
+  try{const d=await api("mark",{token,by:rec,keys:sel.map(s=>s.key)});toast("บันทึกมาสาย "+d.added+" คน"+(d.skipped?" (มีแล้ว "+d.skipped+" คน)":""));picker.clear();await reload()}
+  catch(e){if(e.code==="by"){rec="";store.set("rec","");await reload();render()}toast(e.message)}
+  finally{busy=false;paintAct()}
+}
+async function del(k,btn){const r=RECS.find(x=>x.key===k);if(!r||!confirm("ลบ "+r.name+" ออกจากรายการมาสายวันนี้?"))return;btn.disabled=true;try{await api("unmark",{token,key:k,date:today});await reload();toast("ลบแล้ว")}catch(e){toast(e.message);btn.disabled=false}}
+async function reload(){try{const t=await api("today",{token});const oldRec=!!recInfo();applyToday(t);CC.status(true,"ออนไลน์");if(!!recInfo()!==oldRec)return render();paintToday();if(picker)picker.refresh()}catch(e){if(token&&e.net)CC.status(false,"เชื่อมต่อไม่ได้")}}
+// โหลดรายการวันนี้ใหม่ทุก 2 นาที (เฉพาะตอนเปิดหน้าจออยู่และมีการใช้งาน)
+function tick(){if(!token&&R.length===0)return;if(document.hidden||!R.length)return;if(Date.now()-lastUse>IDLE_MS){if(!paused){paused=true;CC.status(false,"พักอัปเดต · แตะเพื่อเริ่มใหม่")}return}if(Date.now()-lastLoad>=POLL_MS-1000)reload()}
+function wake(){lastUse=Date.now();if(paused){paused=false;CC.status(true,"ออนไลน์");reload()}}
+["pointerdown","keydown"].forEach(ev=>document.addEventListener(ev,wake,{passive:true}));
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&R.length&&Date.now()-lastLoad>POLL_MS){lastUse=Date.now();reload()}});
+setInterval(tick,30000);
+
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.id==="retry"){start();return}
+  const pk=t.closest("[data-pn]");if(pk){pinKey(pk.dataset.pn);return}
+  const rc=t.closest("[data-rec]");if(rc){rec=rc.dataset.rec;store.set("rec",rec);recQ="";render();return}
+  if(t.closest("#chg")){rec="";store.set("rec","");recView();const i=$("#rq");if(i)i.focus();return}
+  if(t.closest("#mk")){mark();return}
+  const d=t.closest("[data-del]");if(d){del(d.dataset.del,d);return}
+});
+document.addEventListener("input",e=>{if(e.target.id==="rq"){recQ=e.target.value.trim();paintRec()}});
+start();
+})();
+</script>
+</body></html>
