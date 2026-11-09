@@ -4,7 +4,7 @@
    · ตัวเลือกนักเรียน: กรองห้อง (รวมทุกห้อง) + ค้นชื่อ + รายชื่อที่เลือกไว้ก่อนบันทึก */
 var CC = (function () {
   var API = "https://bnk-care-center-api.bnkschool.workers.dev";
-  var VERSION = "1.02.0.091126";
+  var VERSION = "1.02.2.091126";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var store = {
     get: function (k) { try { return localStorage.getItem("bnkcc_" + k) || ""; } catch (e) { return ""; } },
@@ -42,10 +42,10 @@ var CC = (function () {
   function toggleTheme() { var t = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"; store.set("theme", t); applyTheme(t); }
 
   // ---------- ติดตั้งเป็นแอป (PWA) ----------
-  var deferred = null;
+  var deferred = null, NOAPP = false;
   function standalone() { try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch (e) { return false; } }
   function updInstall() { var b = $("#btnInstall"); if (b) b.hidden = standalone(); }
-  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferred = e; updInstall(); });
+  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); if (!NOAPP) deferred = e; updInstall(); });
   window.addEventListener("appinstalled", function () { deferred = null; updInstall(); toast("ติดตั้งแอปเรียบร้อยแล้ว — เปิดได้จากหน้าจอหลัก"); });
   function installHelp() {
     var ua = navigator.userAgent || "", ios = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1), and = /Android/i.test(ua);
@@ -61,7 +61,7 @@ var CC = (function () {
     if (deferred) { var ev = deferred; deferred = null; try { ev.prompt(); await ev.userChoice; } catch (e) { } updInstall(); return; }
     installHelp();
   }
-  if ("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(function () { }); });
+  if ("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", function () { if (!NOAPP) navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(function () { }); });
 
   // ---------- เลขรุ่น + แจ้งเวอร์ชันใหม่ (อ่าน version.json บน GitHub — ไม่ใช้โควต้า Worker) ----------
   var updLast = 0, updShown = "";
@@ -108,11 +108,12 @@ var CC = (function () {
     document.addEventListener("visibilitychange", function () { if (!document.hidden && Date.now() - updLast > 10 * 60e3) checkUpdate(false); });
   }
   // แถบบนของทุกหน้า: ชื่อหน้า + สถานะ + ปุ่มติดตั้งแอป + ปุ่มธีม
-  function chrome(title, sub) {
+  function chrome(title, sub, o) {
+    o = o || {}; if (o.noApp) NOAPP = true;
     var top = $("#top");
     top.innerHTML = '<div class="ttl"><img src="icons/favicon-32.png" alt=""><div>' + esc(title) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div></div><span class="st off" id="st" hidden></span>' +
-      '<button type="button" class="ib" id="btnInstall" title="ติดตั้งเป็นแอปบนเครื่องนี้" aria-label="ติดตั้งเป็นแอป">' + IC.dl + '</button><button type="button" class="ib" id="btnTheme" aria-label="เปลี่ยนธีม"></button>';
-    $("#btnTheme").addEventListener("click", toggleTheme); $("#btnInstall").addEventListener("click", install);
+      (o.noApp ? '' : '<button type="button" class="ib" id="btnInstall" title="ติดตั้งเป็นแอปบนเครื่องนี้" aria-label="ติดตั้งเป็นแอป">' + IC.dl + '</button>') + '<button type="button" class="ib" id="btnTheme" aria-label="เปลี่ยนธีม"></button>';
+    $("#btnTheme").addEventListener("click", toggleTheme); if (!o.noApp) $("#btnInstall").addEventListener("click", install);
     applyTheme(store.get("theme") === "dark" ? "dark" : "light"); updInstall();
     try { matchMedia("(display-mode: standalone)").addEventListener("change", updInstall); } catch (e) { }
     footer();
