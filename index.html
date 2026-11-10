@@ -22,20 +22,20 @@
 <meta name="apple-mobile-web-app-title" content="BNK Care Center">
 <script>try{if(localStorage.getItem("bnkcc_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/cc.css?v=1.02.2.091126">
+<link rel="stylesheet" href="assets/cc.css?v=1.03.0.101126">
 </head><body><div class="wrap">
 <div class="top" id="top"></div>
 <img class="ban" src="assets/banner.jpg" alt="ระบบบันทึกพฤติกรรมการมาสาย นักเรียนโรงเรียนบุ่งคล้านคร" width="1300" height="433">
 <div id="v"></div>
 </div>
-<script src="assets/cc.js?v=1.02.2.091126"></script>
+<script src="assets/cc.js?v=1.03.0.101126"></script>
 <script>
 /* หน้าครู (หน้าหลัก) — ล็อกอินด้วยบัญชีเว็บส่งงาน · หัก/เพิ่มคะแนนทีละหลายคน · คะแนนห้องที่ปรึกษา (เมื่อเปิดสิทธิ์)
    ประหยัด: เปิดหน้า = staffMe 1 ครั้ง (สิทธิ์ + รายการของวันนี้) + roster (ส่งเฉพาะเมื่อรายชื่อเปลี่ยน) · ไม่มีการโหลดซ้ำอัตโนมัติ */
 (function(){
 const {$,esc,toast,api,store,IC}=CC;
 let staff=store.get("staff"),ME=null,CFG=null,R=[],MINE=[],tab="adj",picker=null;
-let A={sign:-1,item:null,custom:false,cl:"",cp:"",note:""},busy=false;
+let A={sign:-1,item:null,custom:false,late:false,cl:"",cp:"",note:""},busy=false;
 let SC={room:"",list:null,period:"",q:"",key:"",st:null};
 CC.chrome("หน้าครู","บันทึกคะแนนพฤติกรรม");
 CC.setErr(e=>{if(e.code==="staff")out(e.message)});
@@ -76,25 +76,27 @@ function adjView(){
   picker=CC.Picker($("#pk"),{rooms:R,title:"รายชื่อที่เลือก",onChange:paintAct});
   paintAct();paintMine();
 }
-function curItem(){if(A.custom)return{label:A.cl.trim(),delta:A.sign*Math.abs(Math.trunc(+A.cp||0))};return A.item==null?null:CFG.items.find(x=>x.i===A.item)}
+function curItem(){if(A.late)return{late:true,label:"มาสาย",delta:-(CFG.latePoints||0)||-0.0001};if(A.custom)return{label:A.cl.trim(),delta:A.sign*Math.abs(Math.trunc(+A.cp||0))};return A.item==null?null:CFG.items.find(x=>x.i===A.item)}
 function paintAct(){
   const box=picker&&picker.actions();if(!box)return;
   const its=CFG.items.filter(x=>(x.delta>0)===(A.sign>0)),n=picker.sel().length,it=curItem(),cls=A.sign>0?"p":"m";
   box.innerHTML=`<div class="sw"><button type="button" class="m${A.sign<0?" on":""}" data-sg="-1">− หักคะแนน</button><button type="button" class="p${A.sign>0?" on":""}" data-sg="1">+ เพิ่มคะแนน</button></div>
-  <div class="items">${its.map(x=>`<button type="button" class="${cls}${!A.custom&&A.item===x.i?" on":""}" data-it="${x.i}">${esc(x.label)} ${x.delta>0?"+":""}${x.delta}</button>`).join("")}${CFG.custom?`<button type="button" class="${cls}${A.custom?" on":""}" data-cus>อื่นๆ (พิมพ์เอง)</button>`:""}</div>
+  <div class="items">${A.sign<0?`<button type="button" class="lt${A.late?" on":""}" data-lt>⏰ มาสาย${CFG.latePoints?" −"+CFG.latePoints:""}</button>`:""}${its.map(x=>`<button type="button" class="${cls}${!A.custom&&!A.late&&A.item===x.i?" on":""}" data-it="${x.i}">${esc(x.label)} ${x.delta>0?"+":""}${x.delta}</button>`).join("")}${CFG.custom?`<button type="button" class="${cls}${A.custom?" on":""}" data-cus>อื่นๆ (พิมพ์เอง)</button>`:""}</div>
   ${!its.length&&!CFG.custom?`<div class="empty">ยังไม่มีรายการ${A.sign>0?"เพิ่ม":"หัก"}คะแนนที่ใช้ได้</div>`:""}
   ${A.custom?`<div class="cus"><input id="cl" placeholder="เรื่อง" maxlength="60" value="${esc(A.cl)}"><input id="cp" type="number" inputmode="numeric" min="1" max="100" placeholder="คะแนน" value="${esc(A.cp)}"></div>`:""}
   <input id="nt" class="fld" placeholder="หมายเหตุ (ถ้ามี)" maxlength="200" value="${esc(A.note)}">
-  <button type="button" class="btn blk" id="save"${!n||!it||!it.label||!it.delta||busy?" disabled":""}>${busy?"กำลังบันทึก…":it&&it.delta?`บันทึก ${it.delta>0?"+":""}${it.delta} ให้ ${n} คน`:"เลือกรายการ"}</button>`;
+  <button type="button" class="btn blk" id="save"${!n||!it||!it.label||!it.delta||busy?" disabled":""}>${saveTxt(it,n)}</button>`;
 }
+function saveTxt(it,n){return busy?"กำลังบันทึก…":it&&it.late?"บันทึกมาสาย "+n+" คน":it&&it.delta?`บันทึก ${it.delta>0?"+":""}${it.delta} ให้ ${n} คน`:"เลือกรายการ"}
 function paintMine(){
   const b=$("#mine");if(!b)return;
-  b.innerHTML=`<div class="hd"><span>ที่ฉันบันทึกวันนี้ (${MINE.length})</span></div>`+(MINE.length?MINE.map(x=>`<div class="hi"><span class="pt ${x.delta>0?"p":""}">${x.delta>0?"+":""}${x.delta}</span><span class="grow">${esc(x.name)} <span class="mut">· ${esc(x.room)} เลขที่ ${esc(x.no)}</span><small>${esc(x.item)}${x.note?" · "+esc(x.note):""}</small></span><button type="button" class="x" data-un="${x.id}">ยกเลิก</button></div>`).join(""):'<div class="empty">ยังไม่มีรายการ</div>');
+  b.innerHTML=`<div class="hd"><span>ที่ฉันบันทึกวันนี้ (${MINE.length})</span></div>`+(MINE.length?MINE.map(x=>x.late?`<div class="hi"><span class="pt t">${esc(x.time||"")}</span><span class="grow">${esc(x.name)} <span class="mut">· ${esc(x.room)} เลขที่ ${esc(x.no)}</span><small>มาสาย${x.note?" · "+esc(x.note):""}</small></span><button type="button" class="x" data-unl="${esc(x.key)}">ลบ</button></div>`:`<div class="hi"><span class="pt ${x.delta>0?"p":""}">${x.delta>0?"+":""}${x.delta}</span><span class="grow">${esc(x.name)} <span class="mut">· ${esc(x.room)} เลขที่ ${esc(x.no)}</span><small>${esc(x.item)}${x.note?" · "+esc(x.note):""}</small></span><button type="button" class="x" data-un="${x.id}">ยกเลิก</button></div>`).join(""):'<div class="empty">ยังไม่มีรายการ</div>');
 }
 async function save(){
   const sel=picker.sel(),it=curItem();if(!sel.length||!it||busy)return;
   busy=true;paintAct();
   try{
+    if(it.late){const d=await api("late",{staffToken:staff,keys:sel.map(s=>s.key),note:A.note});MINE=d.mine;toast("บันทึกมาสาย "+d.added+" คน"+(d.skipped?" (สายแล้ววันนี้ "+d.skipped+" คน)":""));A.note="";picker.clear();paintMine();return}
     const p={staffToken:staff,keys:sel.map(s=>s.key),note:A.note};
     if(A.custom)p.custom={label:it.label,delta:it.delta};else{p.item=it.i;p.label=it.label}
     const d=await api("adjust",p);MINE=d.mine;toast(`บันทึก ${d.delta>0?"+":""}${d.delta} (${d.item}) ให้ ${d.n} คนแล้ว`);
@@ -104,6 +106,10 @@ async function save(){
 async function unadjust(id,btn){
   if(!confirm("ยกเลิกรายการนี้?"))return;btn.disabled=true;
   try{const d=await api("unadjust",{staffToken:staff,id});MINE=d.mine;paintMine();if(SC.key)openStudent(SC.key);toast("ยกเลิกแล้ว")}catch(e){toast(e.message);btn.disabled=false}
+}
+async function unlate(key,btn){
+  if(!confirm("ลบรายการมาสายนี้?"))return;btn.disabled=true;
+  try{const d=await api("unlate",{staffToken:staff,key});MINE=d.mine;paintMine();toast("ลบแล้ว")}catch(e){toast(e.message);btn.disabled=false}
 }
 // ---------- คะแนน ----------
 function lvTxt(l){return l==="good"?"ดี":l==="fair"?"พอใช้":"ต้องปรับปรุง"}
@@ -132,11 +138,13 @@ document.addEventListener("click",e=>{
   if(t.closest("#sout")){if(confirm("ออกจากระบบ?"))out("");return}
   if(t.closest("#tA")){tab="adj";render();return}
   if(t.closest("#tS")){tab="sc";SC.key="";SC.list=null;render();return}
-  const sg=t.closest("[data-sg]");if(sg){A.sign=+sg.dataset.sg;A.item=null;A.custom=false;paintAct();return}
-  const it=t.closest("[data-it]");if(it){A.item=+it.dataset.it;A.custom=false;paintAct();return}
-  if(t.closest("[data-cus]")){A.custom=true;A.item=null;paintAct();const c=$("#cl");if(c)c.focus();return}
+  const sg=t.closest("[data-sg]");if(sg){A.sign=+sg.dataset.sg;A.item=null;A.custom=false;A.late=false;paintAct();return}
+  if(t.closest("[data-lt]")){A.late=true;A.item=null;A.custom=false;paintAct();return}
+  const it=t.closest("[data-it]");if(it){A.item=+it.dataset.it;A.custom=false;A.late=false;paintAct();return}
+  if(t.closest("[data-cus]")){A.custom=true;A.late=false;A.item=null;paintAct();const c=$("#cl");if(c)c.focus();return}
   if(t.closest("#save")){save();return}
   const un=t.closest("[data-un]");if(un){unadjust(+un.dataset.un,un);return}
+  const ul=t.closest("[data-unl]");if(ul){unlate(ul.dataset.unl,ul);return}
   const sr=t.closest(".srow");if(sr){openStudent(sr.dataset.k);return}
   if(t.closest("#sback")){SC.key="";SC.st=null;SC.list=null;scoreView();return}
 });
