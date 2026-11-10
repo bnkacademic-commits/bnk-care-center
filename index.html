@@ -22,13 +22,13 @@
 <meta name="apple-mobile-web-app-title" content="BNK Care Center">
 <script>try{if(localStorage.getItem("bnkcc_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/cc.css?v=1.03.0.101126">
+<link rel="stylesheet" href="assets/cc.css?v=1.03.1.101126">
 </head><body><div class="wrap">
 <div class="top" id="top"></div>
 <img class="ban" src="assets/banner.jpg" alt="ระบบบันทึกพฤติกรรมการมาสาย นักเรียนโรงเรียนบุ่งคล้านคร" width="1300" height="433">
 <div id="v"></div>
 </div>
-<script src="assets/cc.js?v=1.03.0.101126"></script>
+<script src="assets/cc.js?v=1.03.1.101126"></script>
 <script>
 /* หน้าครู (หน้าหลัก) — ล็อกอินด้วยบัญชีเว็บส่งงาน · หัก/เพิ่มคะแนนทีละหลายคน · คะแนนห้องที่ปรึกษา (เมื่อเปิดสิทธิ์)
    ประหยัด: เปิดหน้า = staffMe 1 ครั้ง (สิทธิ์ + รายการของวันนี้) + roster (ส่งเฉพาะเมื่อรายชื่อเปลี่ยน) · ไม่มีการโหลดซ้ำอัตโนมัติ */
@@ -117,8 +117,8 @@ function scoreView(){
   const rooms=scoreRooms();if(!SC.room||!rooms.some(r=>r.id===SC.room))SC.room=rooms[0].id;
   if(SC.key){
     const d=SC.st;if(!d){$("#pane").innerHTML='<div class="card mut">กำลังโหลด…</div>';return}
-    const sp=d.startPoints||100,pc=Math.max(0,Math.min(100,d.score/sp*100)),col=d.level==="good"?"var(--grn)":d.level==="fair"?"#d4a017":"var(--red)";
-    $("#pane").innerHTML=`<button class="back" id="sback">‹ กลับไปรายชื่อ</button><div class="card"><div class="st1"><div class="ring" style="background:conic-gradient(${col} 0 ${pc}%,var(--ln) ${pc}% 100%)"><div><b>${d.score}</b><small>จาก ${sp}</small></div></div><div><b style="font-size:17px">${esc(d.student.name)}</b><div class="mut" style="margin:2px 0 6px">${esc(d.student.room)} เลขที่ ${esc(d.student.no)} · มาสาย ${d.late} ครั้ง</div><span class="lvp lv-${d.level}">ระดับ ${lvTxt(d.level)}</span></div></div></div>
+    const sp=d.startPoints||100;
+    $("#pane").innerHTML=`<button class="back" id="sback">‹ กลับไปรายชื่อ</button><div class="card"><div class="st1">${CC.ring(d.score,sp)}<div><b style="font-size:17px">${esc(d.student.name)}</b><div class="mut" style="margin:2px 0 6px">${esc(d.student.room)} เลขที่ ${esc(d.student.no)} · มาสาย ${d.late} ครั้ง</div><span class="lvp lv-${d.level}">ระดับ ${lvTxt(d.level)}</span></div></div></div>
     <div class="card"><b>ประวัติ</b> <span class="mut">(${esc(d.period||"")})</span><div style="margin-top:6px">${d.hist.length?d.hist.map(x=>x.kind==="late"?`<div class="hi"><span class="pt">${x.delta||0}</span><span class="grow">มาสาย ${esc(x.time||"")}${x.reason?" ("+esc(x.reason)+")":""}<small>${CC.thD(x.date)} · บันทึกโดย ${esc(x.by||"-")}</small></span></div>`
       :`<div class="hi"><span class="pt ${x.delta>0?"p":""}">${x.delta>0?"+":""}${x.delta}</span><span class="grow">${esc(x.item)}${x.note?` <span class="mut">· ${esc(x.note)}</span>`:""}<small>${CC.thD(x.date)} · โดย ${esc(x.by||"-")}</small></span>${care()||MINE.some(m=>m.id===x.id)?`<button type="button" class="x" data-un="${x.id}">ยกเลิก</button>`:""}</div>`).join(""):'<div class="mut">ยังไม่มีรายการ</div>'}</div></div>`;
     return;

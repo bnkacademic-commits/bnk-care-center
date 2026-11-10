@@ -4,7 +4,7 @@
    · ตัวเลือกนักเรียน: กรองห้อง (รวมทุกห้อง) + ค้นชื่อ + รายชื่อที่เลือกไว้ก่อนบันทึก */
 var CC = (function () {
   var API = "https://bnk-care-center-api.bnkschool.workers.dev";
-  var VERSION = "1.03.0.101126";
+  var VERSION = "1.03.1.101126";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var store = {
     get: function (k) { try { return localStorage.getItem("bnkcc_" + k) || ""; } catch (e) { return ""; } },
@@ -179,5 +179,13 @@ var CC = (function () {
     return { sel: function () { return P.sel.slice(); }, clear: function () { P.sel = []; paintRes(); paintBk(); }, refresh: paintRes, actions: function () { return el.querySelector(".bka"); }, info: function (k) { return idx[k]; } };
   }
 
-  return { API: API, VERSION: VERSION, $: $, store: store, esc: esc, toast: toast, thD: thD, api: api, setErr: function (f) { onErr = f; }, IC: IC, chrome: chrome, status: status, roster: roster, Picker: Picker, norm: norm, hit: hit, mark: mark, PRE: PRE };
+  var ring = function (score, start) { // 1.03.1: เขียว 0–คะแนนเริ่มต้น · น้ำเงินซ้อนเมื่อเกิน (เต็มวง +250) · แดงเมื่อติดลบ (เต็มวง −250)
+    score = Number(score) || 0; start = Number(start) || 100; var R = 56, C = 2 * Math.PI * R, CAP = 250;
+    var arc = function (f, col) { f = Math.max(0, Math.min(1, f)); return f <= 0 ? '' : '<circle cx="66" cy="66" r="56" fill="none" stroke="' + col + '" stroke-width="12" stroke-linecap="round" stroke-dasharray="' + (f * C).toFixed(1) + ' ' + C.toFixed(1) + '"/>'; };
+    var s = '<circle cx="66" cy="66" r="56" fill="none" stroke="var(--ring-track,#e5e7eb)" stroke-width="12"/>';
+    if (score < 0) s += arc(-score / CAP, '#dc2626'); else { s += arc(score / start, '#16a34a'); if (score > start) s += arc((score - start) / CAP, '#2563eb'); }
+    var cls = score < 0 ? 'neg' : (score > start ? 'over' : ''), sub = score < 0 ? 'ติดลบ' : (score > start ? 'เกิน +' + (score - start) : 'จาก ' + start);
+    return '<div class="sring ' + cls + '" title="คะแนน ' + score + '"><svg viewBox="0 0 132 132" aria-hidden="true">' + s + '</svg><div class="in"><b>' + score + '</b><small>' + sub + '</small></div></div>';
+  };
+  return { ring: ring, API: API, VERSION: VERSION, $: $, store: store, esc: esc, toast: toast, thD: thD, api: api, setErr: function (f) { onErr = f; }, IC: IC, chrome: chrome, status: status, roster: roster, Picker: Picker, norm: norm, hit: hit, mark: mark, PRE: PRE };
 })();
