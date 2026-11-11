@@ -22,20 +22,20 @@
 <meta name="apple-mobile-web-app-title" content="BNK Care Center">
 <script>try{if(localStorage.getItem("bnkcc_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/cc.css?v=1.04.2.111126">
+<link rel="stylesheet" href="assets/cc.css?v=1.05.0.111126">
 </head><body><div class="wrap">
 <div class="top" id="top"></div>
 <img class="ban" src="assets/banner.jpg" alt="ระบบบันทึกพฤติกรรมการมาสาย นักเรียนโรงเรียนบุ่งคล้านคร" width="1300" height="433">
 <div id="v"></div>
 </div>
-<script src="assets/cc.js?v=1.04.2.111126"></script>
+<script src="assets/cc.js?v=1.05.0.111126"></script>
 <script>
 /* หน้าครู (หน้าหลัก) — ล็อกอินด้วยบัญชีเว็บส่งงาน · หัก/เพิ่มคะแนนทีละหลายคน · คะแนนห้องที่ปรึกษา (เมื่อเปิดสิทธิ์)
    ประหยัด: เปิดหน้า = staffMe 1 ครั้ง (สิทธิ์ + รายการของวันนี้) + roster (ส่งเฉพาะเมื่อรายชื่อเปลี่ยน) · ไม่มีการโหลดซ้ำอัตโนมัติ */
 (function(){
 const {$,esc,toast,api,store,IC}=CC;
 let staff=store.get("staff"),ME=null,CFG=null,R=[],MINE=[],tab="adj",picker=null;
-let A={sign:-1,item:null,custom:false,late:false,cl:"",cp:"",note:""},busy=false;
+let A={sign:-1,item:null,custom:false,late:false,cl:"",cp:"",note:""},busy=false,PH=[],EVC={}; // 1.05.0: PH = รูปหลักฐานที่รอส่ง · EVC = รูปที่โหลดแล้ว
 let SC={room:"",list:null,period:"",q:"",key:"",st:null};
 CC.chrome("หน้าครู","บันทึกคะแนนพฤติกรรม");
 CC.setErr(e=>{if(e.code==="staff")out(e.message)});
@@ -85,12 +85,22 @@ function paintAct(){
   ${!its.length&&!CFG.custom?`<div class="empty">ยังไม่มีรายการ${A.sign>0?"เพิ่ม":"หัก"}คะแนนที่ใช้ได้</div>`:""}
   ${A.custom?`<div class="cus"><input id="cl" placeholder="เรื่อง" maxlength="60" value="${esc(A.cl)}"><input id="cp" type="number" inputmode="numeric" min="1" max="100" placeholder="คะแนน" value="${esc(A.cp)}"></div>`:""}
   <input id="nt" class="fld" placeholder="หมายเหตุ (ถ้ามี)" maxlength="200" value="${esc(A.note)}">
+  ${CFG.ev&&!A.late?phHtml():""}
   <button type="button" class="btn blk" id="save"${!n||!it||!it.label||!it.delta||busy?" disabled":""}>${saveTxt(it,n)}</button>`;
 }
+// ---------- 1.05.0: รูปหลักฐาน (ย่อในเครื่อง → Worker → Google Drive) ----------
+const MAXP=()=>CFG.maxPhotos||5;
+function phHtml(){return `<div class="phs"><div class="phl">📷 รูปหลักฐาน <span class="mut">(ถ้ามี · ไม่เกิน ${MAXP()} รูป)</span></div><div class="pht">${PH.map((p,i)=>`<span class="ph"><img src="${p.url}" alt=""><button type="button" data-phx="${i}" aria-label="เอารูปออก">✕</button></span>`).join("")}${PH.length<MAXP()?`<label class="phadd">＋<span>ถ่าย/เลือกรูป</span><input type="file" id="phin" accept="image/*" multiple hidden></label>`:""}</div><div class="mut" style="font-size:12px">ย่อรูปอัตโนมัติก่อนส่ง · เห็นเฉพาะครูกิจการนักเรียน ผู้บันทึก และผู้ดูแล</div></div>`}
+function shrink(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const M=1280,r=Math.min(1,M/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);let q=.82,d=c.toDataURL("image/jpeg",q);while(d.length>420000&&q>.4){q-=.12;d=c.toDataURL("image/jpeg",q)}ok(d)};im.onerror=()=>{URL.revokeObjectURL(u);no(new Error("เปิดรูปไม่ได้"))};im.src=u})}
+async function addPhotos(files){for(const f of [...files]){if(PH.length>=MAXP()){toast("แนบได้ไม่เกิน "+MAXP()+" รูป");break}if(!/^image\//.test(f.type))continue;try{const d=await shrink(f);PH.push({url:d})}catch(e){toast(e.message)}}paintAct()}
+async function upPhotos(ids,list){let ok=0;for(let i=0;i<list.length;i++){toast("กำลังอัปรูปหลักฐาน "+(i+1)+"/"+list.length+"…");try{await api("evup",{staffToken:staff,ids,base64:list[i].url.split(",")[1],mime:"image/jpeg"});ok++}catch(e){toast("อัปรูปไม่สำเร็จ: "+e.message)}}return ok}
+async function evShow(eventId,pids,box){box.innerHTML=pids.map((p,i)=>`<span class="evt" data-evi="${i}">${EVC[p]?`<img src="${EVC[p]}" alt="">`:'<span class="mut">กำลังโหลด…</span>'}</span>`).join("");for(let i=0;i<pids.length;i++){const p=pids[i];if(!EVC[p]){try{const d=await api("evget",{staffToken:staff,eventId,pid:p});EVC[p]="data:"+d.mime+";base64,"+d.base64}catch(e){const s=box.querySelector(`[data-evi="${i}"]`);if(s)s.innerHTML='<span class="red" style="font-size:12px">'+esc(e.message)+'</span>';continue}}const s=box.querySelector(`[data-evi="${i}"]`);if(s)s.innerHTML=`<img src="${EVC[p]}" alt="">`}}
+function zoom(src){const z=document.createElement("div");z.className="zoom";z.innerHTML=`<img src="${src}" alt=""><button type="button" aria-label="ปิด">✕</button>`;z.addEventListener("click",()=>z.remove());document.body.appendChild(z)}
+function phBadge(id,pids){return pids&&pids.length?` <button type="button" class="phb" data-ev="${id}" data-p="${esc(pids.join(","))}">📷 ${pids.length}</button>`:""}
 function saveTxt(it,n){return busy?"กำลังบันทึก…":it&&it.late?"บันทึกมาสาย "+n+" คน":it&&it.delta?`บันทึก ${it.delta>0?"+":""}${it.delta} ให้ ${n} คน`:"เลือกรายการ"}
 function paintMine(){
   const b=$("#mine");if(!b)return;
-  b.innerHTML=`<div class="hd"><span>ที่ฉันบันทึกวันนี้ (${MINE.length})</span></div>`+(MINE.length?MINE.map(x=>x.late?`<div class="hi"><span class="pt t">${esc(x.time||"")}</span><span class="grow">${esc(x.name)} <span class="mut">· ${esc(x.room)} เลขที่ ${esc(x.no)}</span><small>มาสาย${x.note?" · "+esc(x.note):""}</small></span><button type="button" class="x" data-unl="${esc(x.key)}">ลบ</button></div>`:`<div class="hi"><span class="pt ${x.delta>0?"p":""}">${x.delta>0?"+":""}${x.delta}</span><span class="grow">${esc(x.name)} <span class="mut">· ${esc(x.room)} เลขที่ ${esc(x.no)}</span><small>${esc(x.item)}${x.note?" · "+esc(x.note):""}</small></span><button type="button" class="x" data-un="${x.id}">ยกเลิก</button></div>`).join(""):'<div class="empty">ยังไม่มีรายการ</div>');
+  b.innerHTML=`<div class="hd"><span>ที่ฉันบันทึกวันนี้ (${MINE.length})</span></div>`+(MINE.length?MINE.map(x=>x.late?`<div class="hi"><span class="pt t">${esc(x.time||"")}</span><span class="grow">${esc(x.name)} <span class="mut">· ${esc(x.room)} เลขที่ ${esc(x.no)}</span><small>มาสาย${x.note?" · "+esc(x.note):""}</small></span><button type="button" class="x" data-unl="${esc(x.key)}">ลบ</button></div>`:`<div class="hi"><span class="pt ${x.delta>0?"p":""}">${x.delta>0?"+":""}${x.delta}</span><span class="grow">${esc(x.name)} <span class="mut">· ${esc(x.room)} เลขที่ ${esc(x.no)}</span><small>${esc(x.item)}${x.note?" · "+esc(x.note):""}${phBadge(x.id,x.ph)}</small><span class="evs" id="evs${x.id}"></span></span>${CFG.ev&&(x.ph||[]).length<MAXP()?`<label class="x phup" title="แนบรูปหลักฐาน">📷+<input type="file" accept="image/*" hidden data-phup="${x.id}"></label>`:""}<button type="button" class="x" data-un="${x.id}">ยกเลิก</button></div>`).join(""):'<div class="empty">ยังไม่มีรายการ</div>');
 }
 async function save(){
   const sel=picker.sel(),it=curItem();if(!sel.length||!it||busy)return;
@@ -99,7 +109,9 @@ async function save(){
     if(it.late){const d=await api("late",{staffToken:staff,keys:sel.map(s=>s.key),note:A.note});MINE=d.mine;toast("บันทึกมาสาย "+d.added+" คน"+(d.skipped?" (สายแล้ววันนี้ "+d.skipped+" คน)":""));A.note="";picker.clear();paintMine();return}
     const p={staffToken:staff,keys:sel.map(s=>s.key),note:A.note};
     if(A.custom)p.custom={label:it.label,delta:it.delta};else{p.item=it.i;p.label=it.label}
-    const d=await api("adjust",p);MINE=d.mine;toast(`บันทึก ${d.delta>0?"+":""}${d.delta} (${d.item}) ให้ ${d.n} คนแล้ว`);
+    const d=await api("adjust",p);MINE=d.mine;
+    if(PH.length&&d.ids&&d.ids.length){const n=await upPhotos(d.ids,PH);PH=[];try{MINE=(await api("mine",{staffToken:staff})).mine}catch(e){}toast(`บันทึก ${d.delta>0?"+":""}${d.delta} (${d.item}) ให้ ${d.n} คนแล้ว · แนบรูป ${n} รูป`)}
+    else toast(`บันทึก ${d.delta>0?"+":""}${d.delta} (${d.item}) ให้ ${d.n} คนแล้ว`);
     A.note="";picker.clear();paintMine();
   }catch(e){toast(e.message)}finally{busy=false;paintAct()}
 }
@@ -118,9 +130,9 @@ function scoreView(){
   if(SC.key){
     const d=SC.st;if(!d){$("#pane").innerHTML='<div class="card mut">กำลังโหลด…</div>';return}
     const sp=d.startPoints||100;
-    $("#pane").innerHTML=`<button class="back" id="sback">‹ กลับไปรายชื่อ</button><div class="card"><div class="st1">${CC.ring(d.score,sp)}<div><b style="font-size:17px">${esc(d.student.name)}</b><div class="mut" style="margin:2px 0 6px">${esc(d.student.room)} เลขที่ ${esc(d.student.no)} · มาสาย ${d.late} ครั้ง</div><span class="lvp lv-${d.level}">ระดับ ${lvTxt(d.level)}</span></div></div></div>
+    $("#pane").innerHTML=`<button class="back" id="sback">‹ กลับไปรายชื่อ</button><div class="card"><div class="st1">${CC.ring(d.score,sp)}<div><b style="font-size:17px">${esc(d.student.name)}</b><div class="mut" style="margin:2px 0 6px">${esc(d.student.room)} เลขที่ ${esc(d.student.no)} · มาสาย ${d.late} ครั้ง</div><span class="lvp lv-${d.level}">ระดับ ${lvTxt(d.level)}</span></div></div>${care()?`<button type="button" class="btn blk rpt" id="rpt">📄 รายงาน PDF (แนบบันทึก / ทัณฑ์บน)</button>`:""}</div>
     <div class="card"><b>ประวัติ</b> <span class="mut">(${esc(d.period||"")})</span><div style="margin-top:6px">${d.hist.length?d.hist.map(x=>x.kind==="late"?`<div class="hi"><span class="pt">${x.delta||0}</span><span class="grow">มาสาย ${esc(x.time||"")}${x.reason?" ("+esc(x.reason)+")":""}<small>${CC.thD(x.date)} · บันทึกโดย ${esc(x.by||"-")}</small></span></div>`
-      :`<div class="hi"><span class="pt ${x.delta>0?"p":""}">${x.delta>0?"+":""}${x.delta}</span><span class="grow">${esc(x.item)}${x.note?` <span class="mut">· ${esc(x.note)}</span>`:""}<small>${CC.thD(x.date)} · โดย ${esc(x.by||"-")}</small></span>${care()||MINE.some(m=>m.id===x.id)?`<button type="button" class="x" data-un="${x.id}">ยกเลิก</button>`:""}</div>`).join(""):'<div class="mut">ยังไม่มีรายการ</div>'}</div></div>`;
+      :`<div class="hi"><span class="pt ${x.delta>0?"p":""}">${x.delta>0?"+":""}${x.delta}</span><span class="grow">${esc(x.item)}${x.note?` <span class="mut">· ${esc(x.note)}</span>`:""}<small>${CC.thD(x.date)} · โดย ${esc(x.by||"-")}${phBadge(x.id,x.photos)}</small><span class="evs" id="evs${x.id}"></span></span>${care()||MINE.some(m=>m.id===x.id)?`<button type="button" class="x" data-un="${x.id}">ยกเลิก</button>`:""}</div>`).join(""):'<div class="mut">ยังไม่มีรายการ</div>'}</div></div>`;
     return;
   }
   const L=(SC.list||[]).filter(([k,n,m])=>!SC.q||CC.hit(m,SC.q)||n===SC.q);
@@ -143,6 +155,10 @@ document.addEventListener("click",e=>{
   const it=t.closest("[data-it]");if(it){A.item=+it.dataset.it;A.custom=false;A.late=false;paintAct();return}
   if(t.closest("[data-cus]")){A.custom=true;A.late=false;A.item=null;paintAct();const c=$("#cl");if(c)c.focus();return}
   if(t.closest("#save")){save();return}
+  const px=t.closest("[data-phx]");if(px){PH.splice(+px.dataset.phx,1);paintAct();return}
+  const pb=t.closest("[data-ev]");if(pb){const box=$("#evs"+pb.dataset.ev);if(box){if(box.innerHTML){box.innerHTML="";return}evShow(+pb.dataset.ev,pb.dataset.p.split(","),box)}return}
+  const zi=t.closest(".evt img");if(zi){zoom(zi.src);return}
+  if(t.closest("#rpt")){report();return}
   const un=t.closest("[data-un]");if(un){unadjust(+un.dataset.un,un);return}
   const ul=t.closest("[data-unl]");if(ul){unlate(ul.dataset.unl,ul);return}
   const sr=t.closest(".srow");if(sr){openStudent(sr.dataset.k);return}
@@ -154,7 +170,20 @@ document.addEventListener("input",e=>{
   else if(id==="cl"||id==="cp"){A[id]=e.target.value;const b=$("#save"),it=curItem(),n=picker?picker.sel().length:0;if(b){b.disabled=!n||!it.label||!it.delta||busy;b.textContent=it.delta?`บันทึก ${it.delta>0?"+":""}${it.delta} ให้ ${n} คน`:"ใส่คะแนน"}}
   else if(id==="scq"){SC.q=e.target.value.trim();clearTimeout(SC.h);SC.h=setTimeout(()=>{scoreView();const i=$("#scq");if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},200)}
 });
-document.addEventListener("change",e=>{if(e.target.id==="scr"){SC.room=e.target.value;SC.list=null;scoreView()}});
+document.addEventListener("change",async e=>{
+  if(e.target.id==="scr"){SC.room=e.target.value;SC.list=null;scoreView();return}
+  if(e.target.id==="phin"){await addPhotos(e.target.files);return}
+  const u=e.target.dataset&&e.target.dataset.phup;if(u&&e.target.files.length){const f=[];for(const x of [...e.target.files].slice(0,1)){try{f.push({url:await shrink(x)})}catch(er){toast(er.message)}}if(f.length){const n=await upPhotos([+u],f);if(n)toast("แนบรูปแล้ว");try{MINE=(await api("mine",{staffToken:staff})).mine;paintMine()}catch(er){}}}
+});
+// ---------- 1.05.0: รายงาน PDF รายบุคคล (ครูกิจการนักเรียน) ----------
+function loadJs(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("โหลดไลบรารีไม่สำเร็จ — ตรวจสอบอินเทอร์เน็ต"));document.head.appendChild(s)})}
+async function report(){
+  const d=SC.st;if(!d)return;
+  if(!window.CareReport)await loadJs("assets/carereport.js?v="+CC.VERSION);
+  CareReport.open({data:d,school:"โรงเรียนบุ่งคล้านคร",fileName:"รายงานพฤติกรรม_"+String(d.student.room).replace("ม.","ม").replace("/","-")+"_"+d.student.no+"_"+String(d.student.name).replace(/\s+/g,"_")+".pdf",
+    load:async()=>{if(!window.html2canvas)await loadJs("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");if(!window.jspdf)await loadJs("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");return{h2c:window.html2canvas,jsPDF:window.jspdf.jsPDF}},
+    getPhoto:async(eventId,pid)=>{if(!EVC[pid]){const r=await api("evget",{staffToken:staff,eventId,pid});EVC[pid]="data:"+r.mime+";base64,"+r.base64}return EVC[pid]}});
+}
 start();
 })();
 </script>

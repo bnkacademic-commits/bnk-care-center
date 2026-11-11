@@ -132,3 +132,18 @@ input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(
 .sring b{font-size:26px;font-weight:800}.sring small{font-size:10.5px;color:var(--mut,#667085);margin-top:3px;white-space:nowrap}
 .sring.neg b{color:#dc2626}.sring.over b{color:#2563eb}
 :root[data-theme="dark"]{--ring-track:#2e3542}
+
+/* 1.05.0: รูปหลักฐาน + รายงาน PDF */
+.phs{margin:8px 0 2px}.phl{font-weight:700;font-size:14px;margin-bottom:6px}
+.pht{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+.ph{position:relative;width:76px;height:76px;border-radius:10px;overflow:hidden;background:var(--line,#e2e8f0)}.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(15,23,42,.75);color:#fff;font-size:12px;cursor:pointer;line-height:22px;padding:0}
+.phadd{width:76px;height:76px;border-radius:10px;border:2px dashed var(--red,#c8102e);color:var(--red,#c8102e);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:20px;cursor:pointer}.phadd span{font-size:11px;font-weight:700}
+.phb{border:0;background:#eef2ff;color:#4338ca;border-radius:99px;padding:0 8px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;margin-left:4px}
+.evs{display:flex;flex-wrap:wrap;gap:6px}.evs:empty{display:none}.evs{margin-top:6px}
+.evt{width:92px;height:70px;border-radius:8px;overflow:hidden;background:var(--line,#e2e8f0);display:flex;align-items:center;justify-content:center;font-size:11px;cursor:zoom-in}.evt img{width:100%;height:100%;object-fit:cover}
+.zoom{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:12px}.zoom img{max-width:100%;max-height:100%;object-fit:contain}
+.zoom button{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:18px}
+.phup{cursor:pointer;white-space:nowrap}
+.rpt{margin-top:12px;background:#dc2626}
+[data-theme="dark"] .phb{background:rgba(99,102,241,.25);color:#c7d2fe}
