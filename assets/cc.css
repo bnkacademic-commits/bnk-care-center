@@ -147,3 +147,16 @@ input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(
 .phup{cursor:pointer;white-space:nowrap}
 .rpt{margin-top:12px;background:#dc2626}
 [data-theme="dark"] .phb{background:rgba(99,102,241,.25);color:#c7d2fe}
+/* 1.05.1: รูปสมาชิกสภานักเรียน · การ์ดครู · ปุ่มออก · ป็อปอัปถาม · ตาแสดงรหัส */
+.cav{width:36px;height:36px;flex:none;display:block}.cav .b{fill:var(--pri)}.cav .s{fill:#fff}.cav .g{fill:none;stroke:var(--pri);stroke-width:1.8;stroke-linecap:round}.cav .a{fill:#6b2fa0}.cav .w{stroke:#fff;stroke-width:2}
+.me{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:8px 10px;margin-bottom:8px}
+.me .pic{width:42px;height:42px;border-radius:50%;object-fit:cover;flex:none;border:2px solid var(--prib);background:var(--prib);color:var(--pri);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}
+.me .nm{flex:1;min-width:0;font-size:14px;line-height:1.35}.me .nm b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.me .role{margin-left:0}
+.out{display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:10px;border:1px solid var(--ln);background:var(--card);color:var(--mut);font:inherit;font-size:13px;font-weight:700;flex:none}
+.out svg{width:16px;height:16px}.out:hover{color:var(--pri);border-color:var(--pri)}
+.mdl.ask .box{max-width:340px;text-align:center;padding:20px 16px 14px}
+.ask .ai{width:52px;height:52px;border-radius:50%;background:var(--prib);color:var(--pri);display:flex;align-items:center;justify-content:center;margin:0 auto 8px}.ask .ai svg{width:26px;height:26px}
+.ask .at{display:block;font-size:17px}.ask .am{margin-top:4px;font-size:14px;white-space:pre-line}.ask .ab{display:flex;gap:8px;margin-top:14px}.ask .ab .btn{flex:1}
+.pw{position:relative;display:block}.pw input{width:100%;padding-right:44px}
+.pw .eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;background:none;color:var(--mut);display:flex;align-items:center;justify-content:center;border-radius:8px;padding:0}
+.pw .eye svg{width:20px;height:20px}.pw .eye.on{color:var(--pri)}

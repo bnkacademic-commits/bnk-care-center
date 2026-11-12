@@ -4,7 +4,7 @@
    · ตัวเลือกนักเรียน: กรองห้อง (รวมทุกห้อง) + ค้นชื่อ + รายชื่อที่เลือกไว้ก่อนบันทึก */
 var CC = (function () {
   var API = "https://bnk-care-center-api.bnkschool.workers.dev";
-  var VERSION = "1.05.0.111126";
+  var VERSION = "1.05.1.121126";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var store = {
     get: function (k) { try { return localStorage.getItem("bnkcc_" + k) || ""; } catch (e) { return ""; } },
@@ -179,6 +179,79 @@ var CC = (function () {
     return { sel: function () { return P.sel.slice(); }, clear: function () { P.sel = []; paintRes(); paintBk(); }, refresh: paintRes, actions: function () { return el.querySelector(".bka"); }, info: function (k) { return idx[k]; } };
   }
 
+  // ---------- 1.05.1: ป็อปอัปถามยืนยันของเว็บ (แทน confirm ของเบราว์เซอร์) → Promise<true/false> ----------
+  var IC_OUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg>';
+  var IC_WARN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>';
+  IC.out = IC_OUT;
+  function ask(title, msg, ok, o) {
+    o = o || {};
+    return new Promise(function (res) {
+      var m = document.createElement("div"); m.className = "mdl ask";
+      m.innerHTML = '<div class="box" role="alertdialog" aria-modal="true"><div class="ai">' + (o.icon || IC_WARN) + '</div><b class="at">' + esc(title) + '</b>' + (msg ? '<div class="mut am">' + esc(msg) + '</div>' : '') +
+        '<div class="ab"><button type="button" class="btn ghost" data-a="0">' + esc(o.cancel || "ยกเลิก") + '</button><button type="button" class="btn" data-a="1">' + esc(ok || "ยืนยัน") + '</button></div></div>';
+      var done = function (v) { if (!m.parentNode) return; m.remove(); res(v); };
+      m.__close = function () { done(false); };
+      m.addEventListener("click", function (e) { var b = e.target.closest("[data-a]"); if (b) done(b.getAttribute("data-a") === "1"); else if (e.target === m) done(false); });
+      document.body.appendChild(m); var f = m.querySelector('[data-a="1"]'); if (f) f.focus();
+    });
+  }
+  // ---------- 1.05.1: รูปสมาชิกสภานักเรียน (เงาขาวบนวงกลมสีธีม + ปลอกแขนม่วง-ขาว) · ชาย/หญิงตามคำนำหน้า ----------
+  function councilAv(name) {
+    var girl = /^(นางสาว|น\.ส\.|เด็กหญิง|ด\.ญ\.|นาง)/.test(String(name || "").trim());
+    var head = girl ? '<path class="s" d="M18.5 26c0-9 6-14.5 13.5-14.5S45.5 17 45.5 26v11c0 1.8-1.2 3-3 3h-21c-1.8 0-3-1.2-3-3z"/><circle class="s" cx="32" cy="25.5" r="11"/><path class="g" d="M21.2 27.2A11 11 0 0 0 25.5 34.4M42.8 27.2A11 11 0 0 1 38.5 34.4M25.5 34.4V40.5M38.5 34.4V40.5"/>'
+      : '<circle class="s" cx="32" cy="25" r="11.5"/>';
+    return '<svg class="cav" viewBox="0 0 64 64" aria-hidden="true"><circle class="b" cx="32" cy="32" r="32"/><clipPath id="ccavc"><circle cx="32" cy="32" r="32"/></clipPath><g clip-path="url(#ccavc)">' + head +
+      '<path class="s" d="M9 64c0-14 10-23 23-23s23 9 23 23z"/><path class="a" d="M41.5 46.2l9.6 4.6-3.6 8.2-9.8-4.4z"/><path class="w" d="M40 51l9.8 4.4"/></g></svg>';
+  }
+  // ---------- 1.05.1: ปุ่ม Back / ปัดย้อนกลับ = ปิดสิ่งที่เปิดซ้อนอยู่บนสุดก่อน ----------
+  // ชั้น: รูปเต็มจอ · ป็อปอัป (.mdl) · หน้ารายละเอียดในหน้า (back.sub) · งานที่ยังไม่บันทึก (back.dirty = ถามก่อนออก) · เปิดเป็นแอป = "กด Back อีกครั้งเพื่อออก"
+  var back = (function () {
+    var depth = 0, skip = 0, subs = [], dirties = [], leaving = false, armed = false, act = false, qd = false, busy = false;
+    function layers() {
+      var L = [];
+      if (!leaving) {
+        if (act && !armed && standalone()) L.push({ z: 1, close: function () { armed = true; toast("กด Back อีกครั้งเพื่อออก"); setTimeout(function () { armed = false; sync(); }, 2200); } });
+        dirties.forEach(function (d) { try { var m = d.fn(); if (m) L.push({ z: 5, close: function () { askLeave(typeof m === "string" ? m : d.msg); } }); } catch (e) { } });
+      }
+      subs.forEach(function (x, i) { try { if (x.open()) L.push({ z: 20 + i, close: x.close }); } catch (e) { } });
+      Array.prototype.forEach.call(document.querySelectorAll(".mdl"), function (m, i) { if (!m.hidden) L.push({ z: 100 + i, close: function () { if (m.__close) m.__close(); else m.remove(); } }); });
+      Array.prototype.forEach.call(document.querySelectorAll(".zoom"), function (z, i) { L.push({ z: 1000 + i, close: function () { z.remove(); } }); });
+      return L.sort(function (a, b) { return a.z - b.z; });
+    }
+    function sync() {
+      qd = false; if (busy || skip) return;
+      var n = layers().length;
+      while (depth < n) { depth++; try { history.pushState({ bk: depth }, ""); } catch (e) { return; } }
+      if (depth > n) { skip = 1; var k = depth - n; depth = n; history.go(-k); }
+    }
+    function later() { if (!qd) { qd = true; setTimeout(sync, 60); } }
+    function askLeave(msg) {
+      busy = true;
+      ask("ยังไม่ได้บันทึก", msg || "ออกจากหน้านี้เลยไหม?", "ออก ไม่บันทึก").then(function (ok) {
+        if (ok) { leaving = true; var k = depth + 1; depth = 0; history.go(-k); } else { busy = false; sync(); }
+      });
+    }
+    window.addEventListener("popstate", function () {
+      if (skip) { skip = 0; later(); return; }
+      if (busy) { try { history.pushState({ bk: depth }, ""); } catch (e) { } return; }
+      if (depth <= 0) return;
+      depth--;
+      var L = layers(), top = L[L.length - 1];
+      if (top && top.close) { try { top.close(); } catch (e) { } }
+      later();
+    });
+    window.addEventListener("beforeunload", function (e) { if (leaving) return; if (dirties.some(function (d) { try { return !!d.fn(); } catch (x) { return false; } })) { e.preventDefault(); e.returnValue = ""; } });
+    function onAct() { if (!act) { act = true; later(); } }
+    document.addEventListener("pointerdown", onAct, true); document.addEventListener("keydown", onAct, true);
+    function boot() {
+      try { if (history.state && history.state.bk) history.replaceState(null, ""); } catch (e) { }
+      new MutationObserver(later).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden", "class"] });
+      later();
+    }
+    if (document.body) boot(); else document.addEventListener("DOMContentLoaded", boot);
+    return { sub: function (open, close) { subs.push({ open: open, close: close }); later(); }, dirty: function (fn, msg) { dirties.push({ fn: fn, msg: msg }); }, sync: later, leave: function () { leaving = true; } };
+  })();
+
   var ring = function (score, start) { // 1.03.1: เขียว 0–คะแนนเริ่มต้น · น้ำเงินซ้อนเมื่อเกิน (เต็มวง +250) · แดงเมื่อติดลบ (เต็มวง −250)
     score = Number(score) || 0; start = Number(start) || 100; var R = 56, C = 2 * Math.PI * R, CAP = 250;
     var arc = function (f, col) { f = Math.max(0, Math.min(1, f)); return f <= 0 ? '' : '<circle cx="66" cy="66" r="56" fill="none" stroke="' + col + '" stroke-width="12" stroke-linecap="round" stroke-dasharray="' + (f * C).toFixed(1) + ' ' + C.toFixed(1) + '"/>'; };
@@ -187,5 +260,5 @@ var CC = (function () {
     var cls = score < 0 ? 'neg' : (score > start ? 'over' : ''), sub = score < 0 ? 'ติดลบ' : (score > start ? 'เกิน +' + (score - start) : 'จาก ' + start);
     return '<div class="sring ' + cls + '" title="คะแนน ' + score + '"><svg viewBox="0 0 132 132" aria-hidden="true">' + s + '</svg><div class="in"><b>' + score + '</b><small>' + sub + '</small></div></div>';
   };
-  return { ring: ring, API: API, VERSION: VERSION, $: $, store: store, esc: esc, toast: toast, thD: thD, api: api, setErr: function (f) { onErr = f; }, IC: IC, chrome: chrome, status: status, roster: roster, Picker: Picker, norm: norm, hit: hit, mark: mark, PRE: PRE };
+  return { ask: ask, back: back, councilAv: councilAv, ring: ring, API: API, VERSION: VERSION, $: $, store: store, esc: esc, toast: toast, thD: thD, api: api, setErr: function (f) { onErr = f; }, IC: IC, chrome: chrome, status: status, roster: roster, Picker: Picker, norm: norm, hit: hit, mark: mark, PRE: PRE };
 })();

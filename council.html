@@ -22,13 +22,13 @@
 <meta name="apple-mobile-web-app-title" content="BNK Care Center สภานักเรียน">
 <script>try{if(localStorage.getItem("bnkcc_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/cc.css?v=1.05.0.111126">
+<link rel="stylesheet" href="assets/cc.css?v=1.05.1.121126">
 </head><body><div class="wrap">
 <div class="top" id="top"></div>
 <img class="ban" src="assets/banner.jpg" alt="ระบบบันทึกพฤติกรรมการมาสาย นักเรียนโรงเรียนบุ่งคล้านคร" width="1300" height="433">
 <div id="v"></div>
 </div>
-<script src="assets/cc.js?v=1.05.0.111126"></script>
+<script src="assets/cc.js?v=1.05.1.121126"></script>
 <script>
 /* หน้าสภานักเรียน — ใส่ PIN ครั้งเดียว · เลือกผู้บันทึกจากรายชื่อสภานักเรียน · เช็คมาสายทีละหลายคน
    ประหยัด: รายชื่อนักเรียนจำไว้ในเครื่อง · รายการวันนี้โหลดใหม่ทุก 2 นาทีเฉพาะตอนเปิดหน้าจออยู่ · ไม่ได้ใช้งาน 10 นาที = หยุดโหลด */
@@ -39,6 +39,8 @@ let token=store.get("token"),rec=store.get("rec"),R=[],COUNCIL=[],RECS=[],ADJ=[]
 CC.chrome("หน้าสภานักเรียน","บันทึกมาสาย · หัก/เพิ่มคะแนน");
 CC.setErr(e=>{if(e.code==="auth")logout(token?"รหัส PIN ถูกเปลี่ยน กรุณาใส่รหัสใหม่":"");else if(e.code==="nopin")noPin(e.message)});
 const late=()=>{const m={};RECS.forEach(r=>m[r.key]=r);return m};
+// 1.05.1: เลือกนักเรียนไว้แต่ยังไม่บันทึก → กด Back / ปิดหน้า = ถามก่อนออก
+CC.back.dirty(()=>{const n=picker&&$("#pk")&&picker.sel().length;return n?"เลือกนักเรียนไว้ "+n+" คน ยังไม่ได้บันทึก ออกจากหน้านี้เลยไหม?":""});
 
 // ---------- PIN ----------
 function pinView(msg){
@@ -72,7 +74,7 @@ const recInfo=()=>COUNCIL.find(c=>c[0]===rec);
 function render(){
   if(!recInfo())return recView();
   const c=recInfo();
-  $("#v").innerHTML=`<div class="rec"><span class="av">${esc(c[1].replace(CC.PRE,"").charAt(0))}</span><span class="grow">ผู้บันทึก: <b>${esc(c[1])}</b> <span class="mut">· ${esc(c[2])}</span></span><button type="button" id="chg">เปลี่ยน</button></div><div id="pk"></div><div class="card" id="today"></div>`;
+  $("#v").innerHTML=`<div class="rec">${CC.councilAv(c[1])}<span class="grow">ผู้บันทึก: <b>${esc(c[1])}</b> <span class="mut">· ${esc(c[2])}</span></span><button type="button" id="chg">เปลี่ยน</button></div><div id="pk"></div><div class="card" id="today"></div>`;
   picker=CC.Picker($("#pk"),{rooms:R,title:"รายชื่อที่เลือก",block:k=>SELI==="late"&&late()[k]?"สายแล้ววันนี้":"",onChange:paintAct});
   paintAct();paintToday();
 }
@@ -109,8 +111,8 @@ async function mark(){
   }catch(e){if(e.code==="by"){rec="";store.set("rec","");await reload();render()}else if(/โหลดหน้าใหม่/.test(e.message))await reload();toast(e.message)}
   finally{busy=false;paintAct()}
 }
-async function del(k,btn){const r=RECS.find(x=>x.key===k);if(!r||!confirm("ลบ "+r.name+" ออกจากรายการมาสายวันนี้?"))return;btn.disabled=true;try{await api("unmark",{token,key:k,date:today});await reload();toast("ลบแล้ว")}catch(e){toast(e.message);btn.disabled=false}}
-async function delAdj(id,btn){const x=ADJ.find(a=>a.id===id);if(!x||!confirm(`ลบ ${x.item} (${x.delta>0?"+":""}${x.delta}) ของ ${x.name}?`))return;btn.disabled=true;try{await api("cunadjust",{token,id});await reload();toast("ลบแล้ว")}catch(e){toast(e.message);btn.disabled=false}}
+async function del(k,btn){const r=RECS.find(x=>x.key===k);if(!r||!(await CC.ask("ลบ "+r.name+" ออกจากรายการมาสายวันนี้?","","ลบ")))return;btn.disabled=true;try{await api("unmark",{token,key:k,date:today});await reload();toast("ลบแล้ว")}catch(e){toast(e.message);btn.disabled=false}}
+async function delAdj(id,btn){const x=ADJ.find(a=>a.id===id);if(!x||!(await CC.ask(`ลบ ${x.item} (${x.delta>0?"+":""}${x.delta}) ของ ${x.name}?`,"","ลบ")))return;btn.disabled=true;try{await api("cunadjust",{token,id});await reload();toast("ลบแล้ว")}catch(e){toast(e.message);btn.disabled=false}}
 async function reload(){try{const t=await api("today",{token});const oldRec=!!recInfo();applyToday(t);CC.status(true,"ออนไลน์");if(!!recInfo()!==oldRec)return render();paintToday();if(picker)picker.refresh()}catch(e){if(token&&e.net)CC.status(false,"เชื่อมต่อไม่ได้")}}
 // โหลดรายการวันนี้ใหม่ทุก 2 นาที (เฉพาะตอนเปิดหน้าจออยู่และมีการใช้งาน)
 function tick(){if(!token&&R.length===0)return;if(document.hidden||!R.length)return;if(Date.now()-lastUse>IDLE_MS){if(!paused){paused=true;CC.status(false,"พักอัปเดต · แตะเพื่อเริ่มใหม่")}return}if(Date.now()-lastLoad>=POLL_MS-1000)reload()}

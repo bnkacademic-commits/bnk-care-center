@@ -22,19 +22,19 @@
 <meta name="apple-mobile-web-app-title" content="BNK Care Center">
 <script>try{if(localStorage.getItem("bnkcc_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/cc.css?v=1.05.0.111126">
+<link rel="stylesheet" href="assets/cc.css?v=1.05.1.121126">
 </head><body><div class="wrap">
 <div class="top" id="top"></div>
 <img class="ban" src="assets/banner.jpg" alt="ระบบบันทึกพฤติกรรมการมาสาย นักเรียนโรงเรียนบุ่งคล้านคร" width="1300" height="433">
 <div id="v"></div>
 </div>
-<script src="assets/cc.js?v=1.05.0.111126"></script>
+<script src="assets/cc.js?v=1.05.1.121126"></script>
 <script>
 /* หน้าครู (หน้าหลัก) — ล็อกอินด้วยบัญชีเว็บส่งงาน · หัก/เพิ่มคะแนนทีละหลายคน · คะแนนห้องที่ปรึกษา (เมื่อเปิดสิทธิ์)
    ประหยัด: เปิดหน้า = staffMe 1 ครั้ง (สิทธิ์ + รายการของวันนี้) + roster (ส่งเฉพาะเมื่อรายชื่อเปลี่ยน) · ไม่มีการโหลดซ้ำอัตโนมัติ */
 (function(){
 const {$,esc,toast,api,store,IC}=CC;
-let staff=store.get("staff"),ME=null,CFG=null,R=[],MINE=[],tab="adj",picker=null;
+let staff=store.get("staff"),ME=null,CFG=null,R=[],MINE=[],tab=store.get("tab")==="sc"?"sc":"adj",picker=null; // 1.05.1: จำแท็บไว้
 let A={sign:-1,item:null,custom:false,late:false,cl:"",cp:"",note:""},busy=false,PH=[],EVC={}; // 1.05.0: PH = รูปหลักฐานที่รอส่ง · EVC = รูปที่โหลดแล้ว
 let SC={room:"",list:null,period:"",q:"",key:"",st:null};
 CC.chrome("หน้าครู","บันทึกคะแนนพฤติกรรม");
@@ -43,10 +43,13 @@ const linksHtml=`<div class="links"><a href="council.html">${IC.group} หน้
 
 function loginView(msg){
   $("#v").innerHTML=`<form class="card lgx" id="lg" style="text-align:center;padding:18px 14px"><img src="icons/icon-192.png" alt="" width="72" height="72" style="border-radius:16px"><div style="font-weight:800;font-size:18px;margin:8px 0 2px">เข้าสู่ระบบสำหรับครู</div><div class="mut" style="margin-bottom:8px">ใช้ชื่อผู้ใช้และรหัสผ่านเดียวกับเว็บส่งงาน BNK Academic Hub</div>
-  <input id="u" placeholder="ชื่อผู้ใช้" autocomplete="username" required><input id="p" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" required><button class="btn">เข้าสู่ระบบ</button><div class="red" id="lgm" style="margin-top:8px">${esc(msg||"")}</div></form>
+  <input id="u" placeholder="ชื่อผู้ใช้" autocomplete="username" required><label class="pw"><input id="p" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" required><button type="button" class="eye" id="eye" aria-label="แสดงรหัสผ่าน" title="แสดงรหัสผ่าน">${eyeSvg(false)}</button></label><button class="btn">เข้าสู่ระบบ</button><div class="red" id="lgm" style="margin-top:8px">${esc(msg||"")}</div></form>
   <div class="mut center" style="margin:12px 0 6px">ไปหน้าอื่น</div>${linksHtml}`;
 }
-function out(msg){staff="";ME=null;store.set("staff","");loginView(msg)}
+function out(msg){staff="";ME=null;store.set("staff","");store.set("av","");loginView(msg)}
+function eyeSvg(on){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'+(on?'<path d="M4 20 20 4"/>':'')+'</svg>'}
+// 1.05.1: รูปโปรไฟล์จากเว็บส่งงาน (จำไว้ในเครื่อง — เว็บส่งงานไม่ตอบก็ยังแสดงรูปเดิม) · ไม่มีรูป = ตัวอักษรแรกของชื่อ
+function picHtml(){if(ME&&typeof ME.avatar==="string")store.set("av",ME.avatar);const u=store.get("av")||"",n=String((ME&&ME.name)||"").replace(CC.PRE,"").replace(/^(ครู|อ\.|ดร\.)\s*/,"").charAt(0);return u?`<img class="pic" src="${esc(u)}" alt="" referrerpolicy="no-referrer" onerror="this.outerHTML='<span class=&quot;pic&quot;>${esc(n)}</span>'">`:`<span class="pic">${esc(n)}</span>`}
 async function login(){
   const b=$("#lg button");b.disabled=true;$("#lgm").textContent="";
   try{const d=await api("staffLogin",{username:$("#u").value.trim(),password:$("#p").value});staff=d.staffToken;store.set("staff",staff);ME=d.me;CFG=d.settings;MINE=[];await loadRoster();fetchMine();render()}
@@ -67,7 +70,7 @@ const scoreRooms=()=>care()?R.map(r=>({id:r.id,name:r.name})):(CFG.advisorView?M
 function render(){
   const sr=scoreRooms(),tabs=sr.length?`<div class="tabs"><button id="tA" class="${tab==="adj"?"on":""}">หัก / เพิ่มคะแนน</button><button id="tS" class="${tab==="sc"?"on":""}">${care()?"ดูคะแนน":"คะแนนห้อง "+esc(sr.map(r=>r.name).join(", "))}</button></div>`:"";
   if(!sr.length)tab="adj";
-  $("#v").innerHTML=`<div class="who"><span><b>${esc(ME.name)}</b><span class="role${care()?" care":""}">${care()?"ครูกิจการนักเรียน":"ครู"}</span></span><button class="link" id="sout">ออกจากระบบ</button></div>${linksHtml}${tabs}<div id="pane"></div>`;
+  $("#v").innerHTML=`${linksHtml}<div class="me">${picHtml()}<div class="nm"><b>${esc(ME.name)}</b><span class="role${care()?" care":""}">${care()?"ครูกิจการนักเรียน":"ครู"}</span></div><button type="button" class="out" id="sout" title="ออกจากระบบ">${IC.out}<span>ออก</span></button></div>${tabs}<div id="pane"></div>`;
   tab==="adj"?adjView():scoreView();
 }
 // ---------- หัก / เพิ่มคะแนน ----------
@@ -116,11 +119,11 @@ async function save(){
   }catch(e){toast(e.message)}finally{busy=false;paintAct()}
 }
 async function unadjust(id,btn){
-  if(!confirm("ยกเลิกรายการนี้?"))return;btn.disabled=true;
+  if(!(await CC.ask("ยกเลิกรายการนี้?","","ยกเลิกรายการ",{cancel:"ไม่ใช่"})))return;btn.disabled=true;
   try{const d=await api("unadjust",{staffToken:staff,id});MINE=d.mine;paintMine();if(SC.key)openStudent(SC.key);toast("ยกเลิกแล้ว")}catch(e){toast(e.message);btn.disabled=false}
 }
 async function unlate(key,btn){
-  if(!confirm("ลบรายการมาสายนี้?"))return;btn.disabled=true;
+  if(!(await CC.ask("ลบรายการมาสายนี้?","","ลบ")))return;btn.disabled=true;
   try{const d=await api("unlate",{staffToken:staff,key});MINE=d.mine;paintMine();toast("ลบแล้ว")}catch(e){toast(e.message);btn.disabled=false}
 }
 // ---------- คะแนน ----------
@@ -143,13 +146,17 @@ function scoreView(){
 async function loadScores(){const r=SC.room;try{const d=await api("scores",{staffToken:staff,roomId:r});if(r!==SC.room)return;SC.list=d.list;SC.period=d.period;if(tab==="sc"&&!SC.key)scoreView()}catch(e){toast(e.message)}}
 async function openStudent(k){SC.key=k;SC.st=null;scoreView();try{SC.st=await api("student",{staffToken:staff,key:k});if(SC.key===k&&tab==="sc")scoreView()}catch(e){toast(e.message);SC.key="";scoreView()}}
 
+// 1.05.1: กด Back ตอนดูนักเรียนรายคน = กลับรายชื่อ · เลือกนักเรียนไว้แต่ยังไม่บันทึก = ถามก่อนออก
+CC.back.sub(()=>!!ME&&tab==="sc"&&!!SC.key&&!!$("#sback"),()=>{const b=$("#sback");if(b)b.click()});
+CC.back.dirty(()=>{const n=ME&&tab==="adj"&&picker&&$("#pk")&&picker.sel().length;return n?"เลือกนักเรียนไว้ "+n+" คน ยังไม่ได้บันทึก ออกจากหน้านี้เลยไหม?":""});
 document.addEventListener("submit",e=>{if(e.target.id==="lg"){e.preventDefault();login()}});
 document.addEventListener("click",e=>{
   const t=e.target;
   if(t.id==="retry"){start();return}
-  if(t.closest("#sout")){if(confirm("ออกจากระบบ?"))out("");return}
-  if(t.closest("#tA")){tab="adj";render();return}
-  if(t.closest("#tS")){tab="sc";SC.key="";SC.list=null;render();return}
+  if(t.closest("#sout")){CC.ask("ออกจากระบบ?","ครั้งหน้าต้องเข้าสู่ระบบด้วยบัญชีเว็บส่งงานอีกครั้ง","ออกจากระบบ",{icon:IC.out}).then(ok=>{if(ok)out("")});return}
+  const ey=t.closest("#eye");if(ey){const p=$("#p"),on=p.type==="password";p.type=on?"text":"password";ey.classList.toggle("on",on);ey.innerHTML=eyeSvg(on);ey.setAttribute("aria-label",on?"ซ่อนรหัสผ่าน":"แสดงรหัสผ่าน");ey.title=ey.getAttribute("aria-label");return}
+  if(t.closest("#tA")){tab="adj";store.set("tab",tab);render();return}
+  if(t.closest("#tS")){if(picker&&picker.sel().length){CC.ask("ยังไม่ได้บันทึก","เลือกนักเรียนไว้ "+picker.sel().length+" คน ยังไม่ได้บันทึก ไปหน้าดูคะแนนเลยไหม?","ไปเลย").then(ok=>{if(ok){picker.clear();tab="sc";store.set("tab",tab);SC.key="";SC.list=null;render()}});return}tab="sc";store.set("tab",tab);SC.key="";SC.list=null;render();return}
   const sg=t.closest("[data-sg]");if(sg){A.sign=+sg.dataset.sg;A.item=null;A.custom=false;A.late=false;paintAct();return}
   if(t.closest("[data-lt]")){A.late=true;A.item=null;A.custom=false;paintAct();return}
   const it=t.closest("[data-it]");if(it){A.item=+it.dataset.it;A.custom=false;A.late=false;paintAct();return}
