@@ -4,7 +4,7 @@
    · ตัวเลือกนักเรียน: กรองห้อง (รวมทุกห้อง) + ค้นชื่อ + รายชื่อที่เลือกไว้ก่อนบันทึก */
 var CC = (function () {
   var API = "https://bnk-care-center-api.bnkschool.workers.dev";
-  var VERSION = "1.05.1.121126";
+  var VERSION = "1.05.2.121126";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var store = {
     get: function (k) { try { return localStorage.getItem("bnkcc_" + k) || ""; } catch (e) { return ""; } },
@@ -16,6 +16,15 @@ var CC = (function () {
   var TH_M = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
   function thD(s) { var p = String(s || "").split("-"); return p.length === 3 ? (+p[2]) + " " + TH_M[+p[1] - 1] + " " + (+p[0] + 543) : s; }
   var onErr = null; // หน้าเว็บกำหนดเอง: จัดการรหัสข้อผิดพลาด (auth / staff / nopin)
+  // ---------- 1.05.2: แบนเนอร์ (ตั้งที่เว็บส่งงาน › กิจการนักเรียน › ตั้งค่า) — ใช้ที่จำไว้ในเครื่องก่อน แล้วอัปเดตจากคำตอบของเซิร์ฟเวอร์ ----------
+  var PAGE = /council\.html$/.test(location.pathname) ? "c" : /student\.html$/.test(location.pathname) ? "s" : "t";
+  function banner(p) {
+    var im = document.querySelector(".ban"); if (!im) return;
+    var src = p ? API.replace(/\/$/, "") + "/" + p : "assets/banner.jpg";
+    if (im.getAttribute("src") === src) return;
+    im.onerror = function () { im.onerror = null; im.src = "assets/banner.jpg"; };
+    im.src = src;
+  }
   async function api(action, data) {
     var c = new AbortController(), to = setTimeout(function () { c.abort(); }, 15000), res;
     try { res = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(Object.assign({ action: action }, data || {})), signal: c.signal }); }
@@ -23,6 +32,7 @@ var CC = (function () {
     finally { clearTimeout(to); }
     var d; try { d = await res.json(); } catch (e) { throw new Error("เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง"); }
     if (d.status !== "success") { var y = new Error(d.message || "เกิดข้อผิดพลาด"); y.code = d.code; if (onErr) onErr(y); throw y; }
+    if (typeof d.bn === "string") { store.set("bn_" + PAGE, d.bn); banner(d.bn); } // 1.05.2: แบนเนอร์ที่ตั้งจากเว็บส่งงาน
     return d;
   }
   var IC = {
@@ -114,7 +124,7 @@ var CC = (function () {
     top.innerHTML = '<div class="ttl"><img src="icons/favicon-32.png" alt=""><div>' + esc(title) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div></div><span class="st off" id="st" hidden></span>' +
       (o.noApp ? '' : '<button type="button" class="ib" id="btnInstall" title="ติดตั้งเป็นแอปบนเครื่องนี้" aria-label="ติดตั้งเป็นแอป">' + IC.dl + '</button>') + '<button type="button" class="ib" id="btnTheme" aria-label="เปลี่ยนธีม"></button>';
     $("#btnTheme").addEventListener("click", toggleTheme); if (!o.noApp) $("#btnInstall").addEventListener("click", install);
-    applyTheme(store.get("theme") === "dark" ? "dark" : "light"); updInstall();
+    applyTheme(store.get("theme") === "dark" ? "dark" : "light"); updInstall(); banner(store.get("bn_" + PAGE) || "");
     try { matchMedia("(display-mode: standalone)").addEventListener("change", updInstall); } catch (e) { }
     footer();
   }

@@ -13,7 +13,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(
 .btn.blk{display:block;width:100%}.btn:disabled{opacity:.55;cursor:default}
 .btn.ghost{background:var(--card);color:var(--tx);border-color:var(--ln)}
 .link{background:none;border:0;color:var(--mut);font:inherit;text-decoration:underline;padding:4px 0}
-.ban{display:block;width:100%;height:auto;border-radius:14px;margin-bottom:8px;aspect-ratio:1300/433;background:var(--card)}
+.ban{display:block;width:100%;height:auto;border-radius:14px;margin-bottom:8px;aspect-ratio:1300/433;background:var(--card);object-fit:cover}
 .sub{color:var(--mut);font-size:13px}
 
 /* แถบบน: ชื่อหน้า + ปุ่มติดตั้งแอป / ธีม */
