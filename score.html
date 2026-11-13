@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BNK Care Center — คะแนนพฤติกรรม</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="สำหรับนักเรียนและผู้ปกครอง — ดูคะแนนพฤติกรรมและประวัติการหัก/เพิ่มคะแนน · โรงเรียนบุ่งคล้านคร">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BNK Care Center">
+<meta property="og:title" content="คะแนนพฤติกรรม — BNK Care Center">
+<meta property="og:description" content="สำหรับนักเรียนและผู้ปกครอง — ดูคะแนนพฤติกรรมและประวัติการหัก/เพิ่มคะแนน · โรงเรียนบุ่งคล้านคร">
+<meta property="og:url" content="https://bnkacademic-commits.github.io/bnk-care-center/score.html">
+<meta property="og:image" content="https://bnkacademic-commits.github.io/bnk-care-center/assets/og.jpg?v=1.02.2">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#c8102e">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<script>try{if(localStorage.getItem("bnkcc_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/cc.css?v=1.06.0.131126">
+<style>.vring{display:flex;justify-content:center;margin:12px 0 8px}.vring .sring{width:156px;height:156px}.vring .sring b{font-size:44px}.vring .sring small{font-size:13px}
+.lvl{display:inline-block;font-weight:800;border-radius:99px;padding:4px 14px}.lvl.good{background:#dcfce7;color:#15803d}.lvl.fair{background:#fef3c7;color:#a16207}.lvl.low{background:#ffedd5;color:#c2410c}.lvl.neg{background:#fee2e2;color:#b91c1c}
+.vst{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.vst div{border-radius:12px;padding:8px 4px;text-align:center}.vst b{display:block;font-size:20px}.vst span{font-size:12.5px;color:var(--mut,#667085)}
+.vst .m{background:#fef2f2}.vst .m b{color:#dc2626}.vst .p{background:#eff6ff}.vst .p b{color:#2563eb}.vst .l{background:#fffbeb}.vst .l b{color:#b45309}
+:root[data-theme="dark"] .vst .m{background:rgba(220,38,38,.14)}:root[data-theme="dark"] .vst .p{background:rgba(37,99,235,.16)}:root[data-theme="dark"] .vst .l{background:rgba(217,119,6,.16)}:root[data-theme="dark"] .lvl{filter:brightness(.9)}
+.vh{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line,#eef0f3);align-items:flex-start}.vh:last-child{border-bottom:0}.vh .d{width:58px;flex:none;color:var(--mut,#667085);font-size:13.5px;padding-top:1px}.vh .t{flex:1;min-width:0}.vh .t small{display:block;color:var(--mut,#667085);font-size:12.5px}.vh b{flex:none}.vh b.n{color:#dc2626}.vh b.y{color:#2563eb}
+.idin{letter-spacing:3px;font-size:18px}</style>
+</head><body><div class="wrap">
+<div class="top" id="top"></div>
+<img class="ban" src="assets/banner.jpg" alt="BNK Care Center โรงเรียนบุ่งคล้านคร" width="1300" height="433">
+<div id="v"></div>
+</div>
+<script src="assets/cc.js?v=1.06.0.131126"></script>
+<script>
+/* 1.06.0: หน้าดูคะแนนพฤติกรรม (นักเรียน / ผู้ปกครอง · ไม่ต้องล็อกอิน) — เลือกห้อง → พิมพ์ชื่อ → ใส่เลขประจำตัว (ถ้าเปิดไว้) → ดูคะแนน
+   เปิด/ปิดหน้า และการใช้เลขประจำตัว ตั้งที่เว็บส่งงาน › กิจการนักเรียน › ตั้งค่า › หน้าดูคะแนน · ไม่แสดงชื่อครูผู้บันทึก */
+(function(){
+const {$,esc,toast,api}=CC;
+let B=null,room="",names=null,nv="",q="",pick=-1,code="",busy=false,res=null,ROOMS={};
+CC.chrome("คะแนนพฤติกรรม","สำหรับนักเรียน / ผู้ปกครอง",{noApp:true});
+async function start(){
+  $("#v").innerHTML='<div class="card mut">กำลังโหลด…</div>';
+  try{B=await api("vboot");render()}catch(e){$("#v").innerHTML=`<div class="card"><div class="mut">${esc(e.message)}</div><button class="btn" id="retry" style="margin-top:8px">ลองใหม่</button></div>`}
+}
+const LV={good:"ระดับ ดี",fair:"ระดับ พอใช้",low:"ระดับ ต้องปรับปรุง",neg:"ติดลบ"};
+const thS=d=>{try{const x=CC.thD(d).split(" ");return x[0]+" "+x[1]}catch(e){return d}};
+function render(){
+  if(B.closed){$("#v").innerHTML='<div class="card center" style="padding:20px"><b>ปิดหน้าดูคะแนนชั่วคราว</b><div class="mut" style="margin-top:6px">ติดต่อครูที่ปรึกษาหรือฝ่ายกิจการนักเรียน</div></div>';return}
+  if(res){
+    const r=res,lv=r.score<0?"neg":r.level;
+    $("#v").innerHTML=`<div class="card center"><b style="font-size:18px">${esc(r.name)}</b><div class="mut">${esc(r.room)}${r.no?" · เลขที่ "+esc(r.no):""}</div>
+      <div class="vring">${CC.ring(r.score,r.start)}</div><span class="lvl ${lv}">${LV[lv]}</span>
+      <div class="vst"><div class="m"><b>${r.minus}</b><span>ถูกหัก</span></div><div class="p"><b>+${r.plus}</b><span>ได้เพิ่ม</span></div>${r.late!=null?`<div class="l"><b>${r.late}</b><span>มาสาย (ครั้ง)</span></div>`:'<div class="l"><b>'+r.start+'</b><span>คะแนนเริ่มต้น</span></div>'}</div>
+      <div class="mut" style="margin-top:10px;font-size:13px">${esc(r.period||"")} · เกณฑ์ ดี ≥ ${r.good} · พอใช้ ≥ ${r.fair}</div></div>
+      ${r.hist?`<div class="card"><b>ประวัติ${r.period?" "+esc(r.period):""}</b><div style="margin-top:6px">${r.hist.length?r.hist.map(h=>`<div class="vh"><span class="d">${esc(thS(h.date))}</span><span class="t">${esc(h.item)}${h.note?`<small>${esc(h.note)}</small>`:""}</span><b class="${h.delta<0?"n":"y"}">${h.delta>0?"+":""}${h.delta}</b></div>`).join(""):'<div class="mut" style="padding:8px 0">ยังไม่มีรายการ</div>'}</div>
+      <div class="mut" style="font-size:13px;margin-top:8px">สงสัยรายการไหน ติดต่อครูที่ปรึกษา / ฝ่ายกิจการนักเรียน · ทำความดีเพื่อขอคะแนนคืน ติดต่อครูได้</div></div>`:""}
+      <button type="button" class="btn ghost blk" id="out">ออก / ดูคนอื่น</button>`;
+    return;
+  }
+  $("#v").innerHTML=`<div class="card">
+  <div class="step"><i>1</i>เลือกห้อง</div><select id="rm" class="blk" style="margin-bottom:12px"><option value="">— เลือกห้อง —</option>${B.rooms.map(r=>`<option value="${esc(r[0])}"${r[0]===room?" selected":""}>${esc(r[1])}</option>`).join("")}</select>
+  <div class="step"><i>2</i>พิมพ์ชื่อของตัวเอง</div><div id="nm"></div>
+  ${B.idOn?`<div class="step" style="margin-top:12px"><i>3</i>เลขประจำตัวนักเรียน</div><input id="id" class="blk idin" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="เช่น 12345" value="${esc(code)}"><div class="mut" style="margin:4px 2px 0;font-size:13px">ใช้ยืนยันว่าเป็นเจ้าของข้อมูล · ผู้ปกครองดูแทนได้</div>`:""}
+  <button type="button" class="btn blk" id="go" style="margin-top:14px">ดูคะแนนของฉัน</button><div class="red center" id="msg" style="margin-top:8px"></div></div>`;
+  paintName();paintGo();
+}
+function paintName(){
+  const b=$("#nm");if(!b)return;
+  if(!room){b.innerHTML='<input class="blk" disabled placeholder="เลือกห้องก่อน">';return}
+  if(!names){b.innerHTML='<div class="mut">กำลังโหลดรายชื่อห้อง…</div>';return}
+  if(pick>=0){b.innerHTML=`<div class="sel"><span>✓ ${esc(names[pick])}</span><button type="button" id="unpick">เปลี่ยน</button></div>`;return}
+  const a=document.activeElement&&document.activeElement.id==="nq";
+  b.innerHTML=`<input id="nq" class="blk" placeholder="พิมพ์ชื่อ (ไม่ต้องใส่คำนำหน้า)" value="${esc(q)}" autocomplete="off"><div id="sg"></div><div class="mut" style="margin-top:4px">พิมพ์อย่างน้อย 2 ตัวอักษร แล้วแตะชื่อของตัวเอง</div>`;
+  paintSug();if(a){const i=$("#nq");i.focus();i.setSelectionRange(i.value.length,i.value.length)}
+}
+function paintSug(){
+  const b=$("#sg");if(!b)return;
+  if(CC.norm(q).length<2){b.innerHTML="";return}
+  const L=names.map((n,i)=>[n,i]).filter(x=>CC.hit(x[0],q)).slice(0,6);
+  b.innerHTML=`<div class="sug">${L.map(x=>`<button type="button" data-nm="${x[1]}"><span>${CC.mark(x[0],q)}</span></button>`).join("")||'<div class="empty" style="padding:10px">ไม่พบชื่อในห้องนี้ — ตรวจสอบห้องหรือการสะกด</div>'}</div>`;
+}
+function paintGo(){const s=$("#go");if(!s)return;s.disabled=busy||!room||pick<0||(B.idOn&&code.replace(/\D/g,"").length<3);s.textContent=busy?"กำลังโหลด…":"ดูคะแนนของฉัน"}
+async function loadRoom(id){
+  names=null;pick=-1;paintName();paintGo();
+  try{if(!ROOMS[id]){const d=await api("sroom",{roomId:id});ROOMS[id]=d;nv=d.v}if(room===id){names=ROOMS[id].list;nv=ROOMS[id].v;paintName()}}catch(e){toast(e.message)}
+}
+async function go(){
+  if(busy||pick<0)return;busy=true;paintGo();const m=$("#msg");m.textContent="";
+  try{res=await api("vscore",{roomId:room,i:pick,name:names[pick],v:nv,code});code="";render();window.scrollTo(0,0)}
+  catch(e){if(e.code==="stale"){ROOMS={};const id=room;loadRoom(id)}else if(e.code==="closed"){B.closed=true;render();return}m.textContent=e.message}
+  finally{busy=false;paintGo()}
+}
+document.addEventListener("change",e=>{if(e.target.id==="rm"){room=e.target.value;q="";if(room)loadRoom(room);else{names=null;pick=-1;paintName();paintGo()}}});
+document.addEventListener("input",e=>{if(e.target.id==="nq"){q=e.target.value;paintSug()}else if(e.target.id==="id"){code=e.target.value;paintGo()}});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="id"){go()}});
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.id==="retry"){start();return}
+  if(t.id==="out"){res=null;pick=-1;q="";code="";render();return}
+  const n=t.closest("[data-nm]");if(n){pick=+n.dataset.nm;paintName();paintGo();const i=$("#id");if(i)i.focus();return}
+  if(t.closest("#unpick")){pick=-1;paintName();paintGo();const i=$("#nq");if(i)i.focus();return}
+  if(t.closest("#go")){go();return}
+});
+start();
+})();
+</script>
+</body></html>

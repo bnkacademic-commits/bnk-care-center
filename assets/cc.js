@@ -4,7 +4,7 @@
    · ตัวเลือกนักเรียน: กรองห้อง (รวมทุกห้อง) + ค้นชื่อ + รายชื่อที่เลือกไว้ก่อนบันทึก */
 var CC = (function () {
   var API = "https://bnk-care-center-api.bnkschool.workers.dev";
-  var VERSION = "1.05.2.121126";
+  var VERSION = "1.06.0.131126";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var store = {
     get: function (k) { try { return localStorage.getItem("bnkcc_" + k) || ""; } catch (e) { return ""; } },
@@ -17,7 +17,7 @@ var CC = (function () {
   function thD(s) { var p = String(s || "").split("-"); return p.length === 3 ? (+p[2]) + " " + TH_M[+p[1] - 1] + " " + (+p[0] + 543) : s; }
   var onErr = null; // หน้าเว็บกำหนดเอง: จัดการรหัสข้อผิดพลาด (auth / staff / nopin)
   // ---------- 1.05.2: แบนเนอร์ (ตั้งที่เว็บส่งงาน › กิจการนักเรียน › ตั้งค่า) — ใช้ที่จำไว้ในเครื่องก่อน แล้วอัปเดตจากคำตอบของเซิร์ฟเวอร์ ----------
-  var PAGE = /council\.html$/.test(location.pathname) ? "c" : /student\.html$/.test(location.pathname) ? "s" : "t";
+  var PAGE = /council\.html$/.test(location.pathname) ? "c" : /student\.html$/.test(location.pathname) ? "s" : /score\.html$/.test(location.pathname) ? "v" : "t"; // 1.06.0: v = หน้าดูคะแนน
   function banner(p) {
     var im = document.querySelector(".ban"); if (!im) return;
     var src = p ? API.replace(/\/$/, "") + "/" + p : "assets/banner.jpg";
