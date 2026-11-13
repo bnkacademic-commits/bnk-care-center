@@ -17,26 +17,26 @@
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
 <script>try{if(localStorage.getItem("bnkcc_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/cc.css?v=1.06.0.131126">
+<link rel="stylesheet" href="assets/cc.css?v=1.06.1.141126">
 <style>.vring{display:flex;justify-content:center;margin:12px 0 8px}.vring .sring{width:156px;height:156px}.vring .sring b{font-size:44px}.vring .sring small{font-size:13px}
 .lvl{display:inline-block;font-weight:800;border-radius:99px;padding:4px 14px}.lvl.good{background:#dcfce7;color:#15803d}.lvl.fair{background:#fef3c7;color:#a16207}.lvl.low{background:#ffedd5;color:#c2410c}.lvl.neg{background:#fee2e2;color:#b91c1c}
 .vst{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.vst div{border-radius:12px;padding:8px 4px;text-align:center}.vst b{display:block;font-size:20px}.vst span{font-size:12.5px;color:var(--mut,#667085)}
 .vst .m{background:#fef2f2}.vst .m b{color:#dc2626}.vst .p{background:#eff6ff}.vst .p b{color:#2563eb}.vst .l{background:#fffbeb}.vst .l b{color:#b45309}
 :root[data-theme="dark"] .vst .m{background:rgba(220,38,38,.14)}:root[data-theme="dark"] .vst .p{background:rgba(37,99,235,.16)}:root[data-theme="dark"] .vst .l{background:rgba(217,119,6,.16)}:root[data-theme="dark"] .lvl{filter:brightness(.9)}
-.vh{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line,#eef0f3);align-items:flex-start}.vh:last-child{border-bottom:0}.vh .d{width:58px;flex:none;color:var(--mut,#667085);font-size:13.5px;padding-top:1px}.vh .t{flex:1;min-width:0}.vh .t small{display:block;color:var(--mut,#667085);font-size:12.5px}.vh b{flex:none}.vh b.n{color:#dc2626}.vh b.y{color:#2563eb}
+.vh{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line,#eef0f3);align-items:flex-start}.vh:last-child{border-bottom:0}.vh .d{width:58px;flex:none;color:var(--mut,#667085);font-size:13.5px;padding-top:1px}.vh .t{flex:1;min-width:0}.vh .t small{display:block;color:var(--mut,#667085);font-size:12.5px}.vh b{flex:none}.vh b.n{color:#dc2626}.vh b.y{color:#2563eb}.vh .vph{margin:4px 0 0;padding:3px 10px}
 .idin{letter-spacing:3px;font-size:18px}</style>
 </head><body><div class="wrap">
 <div class="top" id="top"></div>
 <img class="ban" src="assets/banner.jpg" alt="BNK Care Center โรงเรียนบุ่งคล้านคร" width="1300" height="433">
 <div id="v"></div>
 </div>
-<script src="assets/cc.js?v=1.06.0.131126"></script>
+<script src="assets/cc.js?v=1.06.1.141126"></script>
 <script>
 /* 1.06.0: หน้าดูคะแนนพฤติกรรม (นักเรียน / ผู้ปกครอง · ไม่ต้องล็อกอิน) — เลือกห้อง → พิมพ์ชื่อ → ใส่เลขประจำตัว (ถ้าเปิดไว้) → ดูคะแนน
-   เปิด/ปิดหน้า และการใช้เลขประจำตัว ตั้งที่เว็บส่งงาน › กิจการนักเรียน › ตั้งค่า › หน้าดูคะแนน · ไม่แสดงชื่อครูผู้บันทึก */
+   เปิด/ปิดหน้า และการใช้เลขประจำตัว ตั้งที่เว็บส่งงาน › กิจการนักเรียน › ตั้งค่า › หน้าดูคะแนน · 1.06.1: ชื่อครูผู้บันทึก และรูปหลักฐาน แสดงเมื่อเปิดไว้ (ปิดเป็นค่าเริ่มต้น) */
 (function(){
 const {$,esc,toast,api}=CC;
-let B=null,room="",names=null,nv="",q="",pick=-1,code="",busy=false,res=null,ROOMS={};
+let B=null,room="",names=null,nv="",q="",pick=-1,code="",busy=false,res=null,ROOMS={},EVC={}; // 1.06.1: EVC = รูปหลักฐานที่โหลดแล้ว (เฉพาะในหน้านี้ · ออกแล้วล้าง)
 CC.chrome("คะแนนพฤติกรรม","สำหรับนักเรียน / ผู้ปกครอง",{noApp:true});
 async function start(){
   $("#v").innerHTML='<div class="card mut">กำลังโหลด…</div>';
@@ -52,7 +52,7 @@ function render(){
       <div class="vring">${CC.ring(r.score,r.start)}</div><span class="lvl ${lv}">${LV[lv]}</span>
       <div class="vst"><div class="m"><b>${r.minus}</b><span>ถูกหัก</span></div><div class="p"><b>+${r.plus}</b><span>ได้เพิ่ม</span></div>${r.late!=null?`<div class="l"><b>${r.late}</b><span>มาสาย (ครั้ง)</span></div>`:'<div class="l"><b>'+r.start+'</b><span>คะแนนเริ่มต้น</span></div>'}</div>
       <div class="mut" style="margin-top:10px;font-size:13px">${esc(r.period||"")} · เกณฑ์ ดี ≥ ${r.good} · พอใช้ ≥ ${r.fair}</div></div>
-      ${r.hist?`<div class="card"><b>ประวัติ${r.period?" "+esc(r.period):""}</b><div style="margin-top:6px">${r.hist.length?r.hist.map(h=>`<div class="vh"><span class="d">${esc(thS(h.date))}</span><span class="t">${esc(h.item)}${h.note?`<small>${esc(h.note)}</small>`:""}</span><b class="${h.delta<0?"n":"y"}">${h.delta>0?"+":""}${h.delta}</b></div>`).join(""):'<div class="mut" style="padding:8px 0">ยังไม่มีรายการ</div>'}</div>
+      ${r.hist?`<div class="card"><b>ประวัติ${r.period?" "+esc(r.period):""}</b><div style="margin-top:6px">${r.hist.length?r.hist.map(h=>`<div class="vh"><span class="d">${esc(thS(h.date))}</span><span class="t">${esc(h.item)}${h.note?`<small>${esc(h.note)}</small>`:""}${h.by?`<small>โดย ${esc(h.by)}</small>`:""}${h.ph?`<button type="button" class="phb vph" data-ev="${h.id}" data-n="${h.ph}">📷 ดูรูป ${h.ph}</button><span class="evs" id="evs${h.id}"></span>`:""}</span><b class="${h.delta<0?"n":"y"}">${h.delta>0?"+":""}${h.delta}</b></div>`).join(""):'<div class="mut" style="padding:8px 0">ยังไม่มีรายการ</div>'}</div>
       <div class="mut" style="font-size:13px;margin-top:8px">สงสัยรายการไหน ติดต่อครูที่ปรึกษา / ฝ่ายกิจการนักเรียน · ทำความดีเพื่อขอคะแนนคืน ติดต่อครูได้</div></div>`:""}
       <button type="button" class="btn ghost blk" id="out">ออก / ดูคนอื่น</button>`;
     return;
@@ -84,6 +84,12 @@ async function loadRoom(id){
   names=null;pick=-1;paintName();paintGo();
   try{if(!ROOMS[id]){const d=await api("sroom",{roomId:id});ROOMS[id]=d;nv=d.v}if(room===id){names=ROOMS[id].list;nv=ROOMS[id].v;paintName()}}catch(e){toast(e.message)}
 }
+// 1.06.1: รูปหลักฐาน — โหลดเมื่อกด "ดูรูป" เท่านั้น (ประหยัดโควตา) · ใช้สิทธิ์ vt ที่ได้ตอนดูคะแนน (หมดอายุ 30 นาที)
+async function evShow(id,n,box){
+  box.innerHTML=Array.from({length:n},(_,i)=>`<span class="evt" data-evi="${i}">${EVC[id+"_"+i]?`<img src="${EVC[id+"_"+i]}" alt="รูปหลักฐาน">`:'<span class="mut">กำลังโหลด…</span>'}</span>`).join("");
+  for(let i=0;i<n;i++){const k=id+"_"+i,s=()=>box.querySelector(`[data-evi="${i}"]`);if(!EVC[k]){try{const d=await api("vphoto",{vt:res&&res.vt,id,n:i});EVC[k]="data:"+d.mime+";base64,"+d.base64}catch(e){if(s())s().innerHTML='<span class="red" style="font-size:12px;padding:4px">'+esc(e.message)+'</span>';if(e.code==="vt"||e.code==="closed")break;continue}}if(s())s().innerHTML=`<img src="${EVC[k]}" alt="รูปหลักฐาน">`}
+}
+function zoom(src){const z=document.createElement("div");z.className="zoom";z.innerHTML=`<img src="${src}" alt=""><button type="button" aria-label="ปิด">✕</button>`;z.addEventListener("click",()=>z.remove());document.body.appendChild(z)}
 async function go(){
   if(busy||pick<0)return;busy=true;paintGo();const m=$("#msg");m.textContent="";
   try{res=await api("vscore",{roomId:room,i:pick,name:names[pick],v:nv,code});code="";render();window.scrollTo(0,0)}
@@ -96,7 +102,9 @@ document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="id"){
 document.addEventListener("click",e=>{
   const t=e.target;
   if(t.id==="retry"){start();return}
-  if(t.id==="out"){res=null;pick=-1;q="";code="";render();return}
+  if(t.id==="out"){res=null;pick=-1;q="";code="";EVC={};render();return}
+  const pb=t.closest(".vph");if(pb){const box=$("#evs"+pb.dataset.ev);if(box){if(box.innerHTML){box.innerHTML="";return}evShow(+pb.dataset.ev,+pb.dataset.n,box)}return}
+  const tb=t.closest(".evt img");if(tb){zoom(tb.src);return}
   const n=t.closest("[data-nm]");if(n){pick=+n.dataset.nm;paintName();paintGo();const i=$("#id");if(i)i.focus();return}
   if(t.closest("#unpick")){pick=-1;paintName();paintGo();const i=$("#nq");if(i)i.focus();return}
   if(t.closest("#go")){go();return}
