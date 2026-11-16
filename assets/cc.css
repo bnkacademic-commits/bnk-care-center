@@ -8,7 +8,9 @@ button{cursor:pointer}
 .mut{color:var(--mut);font-size:13px}.red{color:var(--red);font-weight:600}
 select,input,textarea{font:inherit;padding:9px 10px;border:1px solid var(--ln);border-radius:10px;background:var(--card);color:var(--tx);min-width:0}
 /* 1.06.1: ฟอนต์ Sarabun มีสระบน/วรรณยุกต์/หางล่างสูงกว่าบรรทัด — มือถือ (iOS/Android) ตัดตัวอักษรในช่องกรอก จึงเผื่อความสูงบรรทัดในช่องบรรทัดเดียว (ความสูงช่องเท่าเดิม) */
-input,select{line-height:1.8;padding-top:6px;padding-bottom:6px}
+/* 1.07.1: ความสูงช่องคงที่ + line-height ปกติของฟอนต์ — ข้อความ/ข้อความตัวอย่างอยู่กึ่งกลางทุกเบราว์เซอร์ (เดิม line-height 1.8 ทำให้ Safari/บางเครื่องตัวหนังสือตกลงล่าง) และไม่ตัดสระบน/หางล่าง */
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select{line-height:normal;height:44px;padding-top:0;padding-bottom:0}
+input::placeholder{line-height:normal}
 input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--pri) 45%,transparent);outline-offset:0;border-color:var(--pri)}
 .card{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:10px 12px;margin-bottom:10px}
 .btn{padding:10px 14px;border-radius:10px;border:1px solid var(--pri);background:var(--pri);color:#fff;font:inherit;font-weight:700}
