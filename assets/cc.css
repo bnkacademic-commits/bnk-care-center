@@ -87,7 +87,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(
 /* PIN */
 .pin{text-align:center;padding:20px 14px}.pin b.t{font-size:18px}
 .dots{display:flex;gap:9px;justify-content:center;margin:14px 0 16px}.dots i{width:40px;height:48px;border:2px solid var(--ln);border-radius:12px;background:var(--card);display:flex;align-items:center;justify-content:center}
-.dots i.f{border-color:var(--pri)}.dots i.f::after{content:"";width:12px;height:12px;border-radius:50%;background:var(--tx)}.dots i.x{opacity:.45;border-style:dashed}
+.dots i.f{border-color:var(--pri)}.dots i.f::after{content:"";width:12px;height:12px;border-radius:50%;background:var(--tx)}.dots i.x{opacity:.45;border-style:dashed;margin-left:0;padding:0;font-size:inherit;text-decoration:none;color:inherit}/* 1.07.2: กันชนกับ .x (ปุ่มลบ) ที่ดันช่องไปขวา */
 .kp{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;max-width:290px;margin:0 auto}.kp button{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:13px 0;font:inherit;font-size:22px;color:var(--tx)}
 .kp button.ok{background:var(--pri);border-color:var(--pri);color:#fff;font-size:17px;font-weight:700}.kp button.dl{font-size:16px;color:var(--mut)}.kp button:disabled{opacity:.45}
 
