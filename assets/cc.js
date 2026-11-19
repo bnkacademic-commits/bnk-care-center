@@ -4,7 +4,7 @@
    · ตัวเลือกนักเรียน: กรองห้อง (รวมทุกห้อง) + ค้นชื่อ + รายชื่อที่เลือกไว้ก่อนบันทึก */
 var CC = (function () {
   var API = "https://bnk-care-center-api.bnkschool.workers.dev";
-  var VERSION = "1.08.2.191126";
+  var VERSION = "1.08.3.191126";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var store = {
     get: function (k) { try { return localStorage.getItem("bnkcc_" + k) || ""; } catch (e) { return ""; } },
@@ -335,5 +335,7 @@ var CC = (function () {
     return { k: "t", t: "ครู", n: n === "-" ? "" : n };
   }
   function whoTag(w) { return '<span class="who ' + w.k + '">' + w.t + "</span>"; }
-  return { who: who, whoTag: whoTag, phc: PHC, ask: ask, back: back, councilAv: councilAv, ring: ring, API: API, VERSION: VERSION, $: $, store: store, esc: esc, toast: toast, thD: thD, api: api, setErr: function (f) { onErr = f; }, IC: IC, chrome: chrome, status: status, roster: roster, Picker: Picker, norm: norm, hit: hit, mark: mark, PRE: PRE };
+  // 1.08.3: เวลาที่บันทึก
+  function tmOf(h) { if (h.tm !== undefined) return h.tm || ''; if (h.kind === 'late') return h.time || ''; return h.byId === 'skip' || !h.at ? '' : new Date(Number(h.at) + 252e5).toISOString().slice(11, 16); }
+  return { tmOf: tmOf, who: who, whoTag: whoTag, phc: PHC, ask: ask, back: back, councilAv: councilAv, ring: ring, API: API, VERSION: VERSION, $: $, store: store, esc: esc, toast: toast, thD: thD, api: api, setErr: function (f) { onErr = f; }, IC: IC, chrome: chrome, status: status, roster: roster, Picker: Picker, norm: norm, hit: hit, mark: mark, PRE: PRE };
 })();
