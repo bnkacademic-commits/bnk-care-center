@@ -22,13 +22,13 @@
 <meta name="apple-mobile-web-app-title" content="BNK Care Center">
 <script>try{if(localStorage.getItem("bnkcc_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/cc.css?v=1.07.2.191126">
+<link rel="stylesheet" href="assets/cc.css?v=1.08.0.191126">
 </head><body><div class="wrap">
 <div class="top" id="top"></div>
 <img class="ban" src="assets/banner.jpg" alt="ระบบบันทึกพฤติกรรมการมาสาย นักเรียนโรงเรียนบุ่งคล้านคร" width="1300" height="433">
 <div id="v"></div>
 </div>
-<script src="assets/cc.js?v=1.07.2.191126"></script>
+<script src="assets/cc.js?v=1.08.0.191126"></script>
 <script>
 /* หน้าครู (หน้าหลัก) — ล็อกอินด้วยบัญชีเว็บส่งงาน · หัก/เพิ่มคะแนนทีละหลายคน · คะแนนห้องที่ปรึกษา (เมื่อเปิดสิทธิ์)
    ประหยัด: เปิดหน้า = staffMe 1 ครั้ง (สิทธิ์ + รายการของวันนี้) + roster (ส่งเฉพาะเมื่อรายชื่อเปลี่ยน) · ไม่มีการโหลดซ้ำอัตโนมัติ */
@@ -50,7 +50,7 @@ function loginView(msg){
   <input id="u" placeholder="ชื่อผู้ใช้" autocomplete="username" required><label class="pw"><input id="p" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" required><button type="button" class="eye" id="eye" aria-label="แสดงรหัสผ่าน" title="แสดงรหัสผ่าน">${eyeSvg(false)}</button></label><button class="btn">เข้าสู่ระบบ</button><div class="red" id="lgm" style="margin-top:8px">${esc(msg||"")}</div></form>
   <div class="lk-h">ไม่ใช่ครู? ไปหน้าอื่น</div><div id="lks">${linksHtml()}</div>`;
 }
-function out(msg){staff="";ME=null;CFG=null;store.set("staff","");store.set("av","");loginView(msg)}
+function out(msg){staff="";ME=null;CFG=null;EVC={};CC.phc.clear();store.set("staff","");store.set("av","");loginView(msg)}
 function eyeSvg(on){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'+(on?'<path d="M4 20 20 4"/>':'')+'</svg>'}
 // 1.05.1: รูปโปรไฟล์จากเว็บส่งงาน (จำไว้ในเครื่อง — เว็บส่งงานไม่ตอบก็ยังแสดงรูปเดิม) · ไม่มีรูป = ตัวอักษรแรกของชื่อ
 function picHtml(){if(ME&&typeof ME.avatar==="string")store.set("av",ME.avatar);const u=store.get("av")||"",n=String((ME&&ME.name)||"").replace(CC.PRE,"").replace(/^(ครู|อ\.|ดร\.)\s*/,"").charAt(0);return u?`<img class="pic" src="${esc(u)}" alt="" referrerpolicy="no-referrer" onerror="this.outerHTML='<span class=&quot;pic&quot;>${esc(n)}</span>'">`:`<span class="pic">${esc(n)}</span>`}
@@ -104,7 +104,11 @@ function phHtml(){return `<div class="phs"><div class="phl">📷 รูปหล
 function shrink(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const M=1280,r=Math.min(1,M/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);let q=.82,d=c.toDataURL("image/jpeg",q);while(d.length>420000&&q>.4){q-=.12;d=c.toDataURL("image/jpeg",q)}ok(d)};im.onerror=()=>{URL.revokeObjectURL(u);no(new Error("เปิดรูปไม่ได้"))};im.src=u})}
 async function addPhotos(files){for(const f of [...files]){if(PH.length>=MAXP()){toast("แนบได้ไม่เกิน "+MAXP()+" รูป");break}if(!/^image\//.test(f.type))continue;try{const d=await shrink(f);PH.push({url:d})}catch(e){toast(e.message)}}paintAct()}
 async function upPhotos(ids,list){let ok=0;for(let i=0;i<list.length;i++){toast("กำลังอัปรูปหลักฐาน "+(i+1)+"/"+list.length+"…");try{await api("evup",{staffToken:staff,ids,base64:list[i].url.split(",")[1],mime:"image/jpeg"});ok++}catch(e){toast("อัปรูปไม่สำเร็จ: "+e.message)}}return ok}
-async function evShow(eventId,pids,box){box.innerHTML=pids.map((p,i)=>`<span class="evt" data-evi="${i}">${EVC[p]?`<img src="${EVC[p]}" alt="">`:'<span class="mut">กำลังโหลด…</span>'}</span>`).join("");for(let i=0;i<pids.length;i++){const p=pids[i];if(!EVC[p]){try{const d=await api("evget",{staffToken:staff,eventId,pid:p});EVC[p]="data:"+d.mime+";base64,"+d.base64}catch(e){const s=box.querySelector(`[data-evi="${i}"]`);if(s)s.innerHTML='<span class="red" style="font-size:12px">'+esc(e.message)+'</span>';continue}}const s=box.querySelector(`[data-evi="${i}"]`);if(s)s.innerHTML=`<img src="${EVC[p]}" alt="">`}}
+// 1.08.0: โหลดทุกรูปพร้อมกัน · จำไว้ในเครื่อง 30 วัน (CC.phc · ล้างเมื่อออกจากระบบ) · ไม่สำเร็จมีปุ่ม "โหลดใหม่" · เปิดประวัติแล้วเตรียมรูปไว้ก่อน
+async function evGet(eventId,p){if(EVC[p])return EVC[p];const c=await CC.phc.get(p);if(c)return EVC[p]=c;const d=await api("evget",{staffToken:staff,eventId,pid:p});EVC[p]="data:"+d.mime+";base64,"+d.base64;CC.phc.put(p,EVC[p]);return EVC[p]}
+function evSlot(s,eventId,p){if(!s)return;s.className="evt";s.title="";s.innerHTML='<span class="mut">กำลังโหลด…</span>';evGet(eventId,p).then(src=>{s.className="evt ok";s.innerHTML=`<img src="${src}" alt="รูปหลักฐาน">`},e=>{s.className="evt bad";s.title=e.message||"";s.innerHTML=`<span>โหลดไม่สำเร็จ</span><button type="button" class="evre" data-evre="${eventId}" data-pid="${esc(p)}">โหลดใหม่</button>`})}
+function evShow(eventId,pids,box){box.innerHTML=pids.map((p,i)=>`<span class="evt" data-evi="${i}"></span>`).join("");pids.forEach((p,i)=>evSlot(box.querySelector(`[data-evi="${i}"]`),eventId,p))}
+function evPrefetch(hist){let n=0;(hist||[]).forEach(x=>(x.photos||[]).forEach(p=>{if(n++<6&&!EVC[p])evGet(x.id,p).catch(()=>{})}))}
 function zoom(src){const z=document.createElement("div");z.className="zoom";z.innerHTML=`<img src="${src}" alt=""><button type="button" aria-label="ปิด">✕</button>`;z.addEventListener("click",()=>z.remove());document.body.appendChild(z)}
 function phBadge(id,pids){return pids&&pids.length?` <button type="button" class="phb" data-ev="${id}" data-p="${esc(pids.join(","))}">📷 ${pids.length}</button>`:""}
 function saveTxt(it,n){return busy?"กำลังบันทึก…":it&&it.late?"บันทึกมาสาย "+n+" คน":it&&it.delta?`บันทึก ${it.delta>0?"+":""}${it.delta} ให้ ${n} คน`:"เลือกรายการ"}
@@ -151,7 +155,7 @@ function scoreView(){
   if(!SC.list)loadScores();
 }
 async function loadScores(){const r=SC.room;try{const d=await api("scores",{staffToken:staff,roomId:r});if(r!==SC.room)return;SC.list=d.list;SC.period=d.period;if(tab==="sc"&&!SC.key)scoreView()}catch(e){toast(e.message)}}
-async function openStudent(k){SC.key=k;SC.st=null;scoreView();try{SC.st=await api("student",{staffToken:staff,key:k});if(SC.key===k&&tab==="sc")scoreView()}catch(e){toast(e.message);SC.key="";scoreView()}}
+async function openStudent(k){SC.key=k;SC.st=null;scoreView();try{SC.st=await api("student",{staffToken:staff,key:k});evPrefetch(SC.st.hist);if(SC.key===k&&tab==="sc")scoreView()}catch(e){toast(e.message);SC.key="";scoreView()}}
 
 // 1.05.1: กด Back ตอนดูนักเรียนรายคน = กลับรายชื่อ · เลือกนักเรียนไว้แต่ยังไม่บันทึก = ถามก่อนออก
 CC.back.sub(()=>!!ME&&tab==="sc"&&!!SC.key&&!!$("#sback"),()=>{const b=$("#sback");if(b)b.click()});
@@ -171,6 +175,7 @@ document.addEventListener("click",e=>{
   if(t.closest("#save")){save();return}
   const px=t.closest("[data-phx]");if(px){PH.splice(+px.dataset.phx,1);paintAct();return}
   const pb=t.closest("[data-ev]");if(pb){const box=$("#evs"+pb.dataset.ev);if(box){if(box.innerHTML){box.innerHTML="";return}evShow(+pb.dataset.ev,pb.dataset.p.split(","),box)}return}
+  const er=t.closest("[data-evre]");if(er){delete EVC[er.dataset.pid];evSlot(er.closest(".evt"),+er.dataset.evre,er.dataset.pid);return}
   const zi=t.closest(".evt img");if(zi){zoom(zi.src);return}
   if(t.closest("#rpt")){report();return}
   const un=t.closest("[data-un]");if(un){unadjust(+un.dataset.un,un);return}
@@ -196,7 +201,7 @@ async function report(){
   if(!window.CareReport)await loadJs("assets/carereport.js?v="+CC.VERSION);
   CareReport.open({data:d,school:"โรงเรียนบุ่งคล้านคร",fileName:"รายงานพฤติกรรม_"+String(d.student.room).replace("ม.","ม").replace("/","-")+"_"+d.student.no+"_"+String(d.student.name).replace(/\s+/g,"_")+".pdf",
     load:async()=>{if(!window.html2canvas)await loadJs("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");if(!window.jspdf)await loadJs("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");return{h2c:window.html2canvas,jsPDF:window.jspdf.jsPDF}},
-    getPhoto:async(eventId,pid)=>{if(!EVC[pid]){const r=await api("evget",{staffToken:staff,eventId,pid});EVC[pid]="data:"+r.mime+";base64,"+r.base64}return EVC[pid]}});
+    getPhoto:evGet});
 }
 start();
 })();

@@ -4,7 +4,7 @@
    · ตัวเลือกนักเรียน: กรองห้อง (รวมทุกห้อง) + ค้นชื่อ + รายชื่อที่เลือกไว้ก่อนบันทึก */
 var CC = (function () {
   var API = "https://bnk-care-center-api.bnkschool.workers.dev";
-  var VERSION = "1.07.2.191126";
+  var VERSION = "1.08.0.191126";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var store = {
     get: function (k) { try { return localStorage.getItem("bnkcc_" + k) || ""; } catch (e) { return ""; } },
@@ -270,5 +270,61 @@ var CC = (function () {
     var cls = score < 0 ? 'neg' : (score > start ? 'over' : ''), sub = score < 0 ? 'ติดลบ' : (score > start ? 'เกิน +' + (score - start) : 'จาก ' + start);
     return '<div class="sring ' + cls + '" title="คะแนน ' + score + '"><svg viewBox="0 0 132 132" aria-hidden="true">' + s + '</svg><div class="in"><b>' + score + '</b><small>' + sub + '</small></div></div>';
   };
-  return { ask: ask, back: back, councilAv: councilAv, ring: ring, API: API, VERSION: VERSION, $: $, store: store, esc: esc, toast: toast, thD: thD, api: api, setErr: function (f) { onErr = f; }, IC: IC, chrome: chrome, status: status, roster: roster, Picker: Picker, norm: norm, hit: hit, mark: mark, PRE: PRE };
+  // 1.08.0: จำรูปหลักฐานไว้ในเครื่อง (IndexedDB) — 30 วัน · ไม่เกิน 100 รูป (เก่าสุดออกก่อน) · ล้างเมื่อออกจากระบบ
+  //   ใช้เฉพาะรูปของรายการที่ระบบยังส่งมา (รายการที่ยกเลิกแล้วจะไม่ถูกเรียกอีก) · ใช้ไม่ได้ (โหมดส่วนตัว ฯลฯ) = ไม่จำ ไม่มีผลอย่างอื่น
+  var PHC = (function () {
+    var NAME = 'bnk-care-photos', MAX = 100, AGE = 30 * 86400000, dbp = null;
+    function db() {
+      if (!dbp) dbp = new Promise(function (ok, no) {
+        try { var r = indexedDB.open(NAME, 1); r.onupgradeneeded = function () { r.result.createObjectStore('p'); r.result.createObjectStore('m'); }; r.onsuccess = function () { ok(r.result); }; r.onerror = function () { no(r.error); }; } catch (e) { no(e); }
+      });
+      return dbp;
+    }
+    function run(mode, fn) { return db().then(function (d) { return new Promise(function (ok, no) { var t = d.transaction(['p', 'm'], mode), res = fn(t.objectStore('p'), t.objectStore('m')); t.oncomplete = function () { ok(res && 'result' in res ? res.result : undefined); }; t.onerror = t.onabort = function () { no(t.error); }; }); }); }
+    function get(k) {
+      return run('readonly', function (p, m) { var a = m.get(k), b = p.get(k); return { get result() { return a.result && b.result && Date.now() - a.result < AGE ? b.result : null; } }; }).catch(function () { return null; });
+    }
+    function put(k, v) {
+      return run('readwrite', function (p, m) { p.put(v, k); m.put(Date.now(), k); }).then(prune).catch(function () {});
+    }
+    function prune() {
+      return run('readwrite', function (p, m) {
+        var list = [], now = Date.now();
+        m.openCursor().onsuccess = function (e) {
+          var c = e.target.result; if (c) { list.push([c.key, c.value]); c.continue(); return; }
+          list.sort(function (a, b) { return a[1] - b[1]; });
+          list.forEach(function (x, i) { if (now - x[1] >= AGE || i < list.length - MAX) { p.delete(x[0]); m.delete(x[0]); } });
+        };
+      });
+    }
+    function del(k) { return run('readwrite', function (p, m) { p.delete(k); m.delete(k); }).catch(function () {}); }
+    function clear() { try { if (dbp) dbp.then(function (d) { d.close(); }).catch(function () {}); dbp = null; indexedDB.deleteDatabase(NAME); } catch (e) { /* ข้าม */ } }
+    if (!window.indexedDB) return { get: function () { return Promise.resolve(null); }, put: function () { return Promise.resolve(); }, del: function () { return Promise.resolve(); }, clear: function () {} };
+    return { get: get, put: put, del: del, clear: clear };
+  })();
+  // 1.08.0: ล็อกการเลื่อนหน้าหลังตอนป็อปอัปเปิดอยู่ (เมาส์ / ลากนิ้ว) — iPad/iPhone ใช้วิธีตรึง body แล้วคืนตำแหน่งเดิมตอนปิด
+  (function (SEL) {
+    var de = document.documentElement, IOS = /iP(ad|hone|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var locked = false, y = 0, q = 0;
+    function vis(el) {
+      if (el.hidden) return false;
+      var cs = getComputedStyle(el);
+      return cs.position === 'fixed' && cs.display !== 'none' && cs.visibility !== 'hidden' && cs.pointerEvents !== 'none' && el.getClientRects().length > 0;
+    }
+    function lock() {
+      locked = true; y = window.scrollY || de.scrollTop || 0; de.classList.add('scroll-locked');
+      if (IOS) { var b = document.body.style; b.position = 'fixed'; b.top = -y + 'px'; b.left = '0'; b.right = '0'; b.width = '100%'; }
+    }
+    function unlock() {
+      locked = false; de.classList.remove('scroll-locked');
+      if (IOS) { var b = document.body.style; b.position = ''; b.top = ''; b.left = ''; b.right = ''; b.width = ''; window.scrollTo(0, y); }
+    }
+    function check() { q = 0; var open = [].some.call(document.querySelectorAll(SEL), vis); if (open !== locked) { if (open) lock(); else unlock(); } }
+    function start() {
+      new MutationObserver(function () { if (!q) q = requestAnimationFrame(check); }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden', 'style', 'open'] });
+      check();
+    }
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+  })('.mdl, .zoom, .crp-m');
+  return { phc: PHC, ask: ask, back: back, councilAv: councilAv, ring: ring, API: API, VERSION: VERSION, $: $, store: store, esc: esc, toast: toast, thD: thD, api: api, setErr: function (f) { onErr = f; }, IC: IC, chrome: chrome, status: status, roster: roster, Picker: Picker, norm: norm, hit: hit, mark: mark, PRE: PRE };
 })();
