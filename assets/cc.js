@@ -4,7 +4,7 @@
    · ตัวเลือกนักเรียน: กรองห้อง (รวมทุกห้อง) + ค้นชื่อ + รายชื่อที่เลือกไว้ก่อนบันทึก */
 var CC = (function () {
   var API = "https://bnk-care-center-api.bnkschool.workers.dev";
-  var VERSION = "1.08.0.191126";
+  var VERSION = "1.08.1.191126";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var store = {
     get: function (k) { try { return localStorage.getItem("bnkcc_" + k) || ""; } catch (e) { return ""; } },
@@ -326,5 +326,13 @@ var CC = (function () {
     }
     if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
   })('.mdl, .zoom, .crp-m');
-  return { phc: PHC, ask: ask, back: back, councilAv: councilAv, ring: ring, API: API, VERSION: VERSION, $: $, store: store, esc: esc, toast: toast, thD: thD, api: api, setErr: function (f) { onErr = f; }, IC: IC, chrome: chrome, status: status, roster: roster, Picker: Picker, norm: norm, hit: hit, mark: mark, PRE: PRE };
+  // 1.08.1: ผู้บันทึก 3 แบบ (แท็กสี) — นักเรียนบันทึกเอง / สภานักเรียน / ครู
+  function who(by) {
+    by = String(by || ""); var cr = / \(สภานักเรียน\)$/;
+    if (by === "นักเรียนแจ้งเอง") return { k: "s", t: "นักเรียนบันทึกเอง", n: "" };
+    if (cr.test(by)) return { k: "c", t: "สภานักเรียน", n: by.replace(cr, "") };
+    return { k: "t", t: "ครู", n: by === "-" ? "" : by };
+  }
+  function whoTag(w) { return '<span class="who ' + w.k + '">' + w.t + "</span>"; }
+  return { who: who, whoTag: whoTag, phc: PHC, ask: ask, back: back, councilAv: councilAv, ring: ring, API: API, VERSION: VERSION, $: $, store: store, esc: esc, toast: toast, thD: thD, api: api, setErr: function (f) { onErr = f; }, IC: IC, chrome: chrome, status: status, roster: roster, Picker: Picker, norm: norm, hit: hit, mark: mark, PRE: PRE };
 })();
