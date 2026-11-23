@@ -4,7 +4,7 @@
    · ตัวเลือกนักเรียน: กรองห้อง (รวมทุกห้อง) + ค้นชื่อ + รายชื่อที่เลือกไว้ก่อนบันทึก */
 var CC = (function () {
   var API = "https://bnk-care-center-api.bnkschool.workers.dev";
-  var VERSION = "1.09.0.201126";
+  var VERSION = "1.10.0.231126";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var store = {
     get: function (k) { try { return localStorage.getItem("bnkcc_" + k) || ""; } catch (e) { return ""; } },
@@ -337,5 +337,7 @@ var CC = (function () {
   function whoTag(w) { return '<span class="who ' + w.k + '">' + w.t + "</span>"; }
   // 1.08.3: เวลาที่บันทึก
   function tmOf(h) { if (h.tm !== undefined) return h.tm || ''; if (h.kind === 'late') return h.time || ''; return h.byId === 'skip' || !h.at ? '' : new Date(Number(h.at) + 252e5).toISOString().slice(11, 16); }
-  return { tmOf: tmOf, who: who, whoTag: whoTag, phc: PHC, ask: ask, back: back, councilAv: councilAv, ring: ring, API: API, VERSION: VERSION, $: $, store: store, esc: esc, toast: toast, thD: thD, api: api, setErr: function (f) { onErr = f; }, IC: IC, chrome: chrome, status: status, roster: roster, Picker: Picker, norm: norm, hit: hit, mark: mark, PRE: PRE };
+  // 1.10.0: โดดเรียนจากเว็บเช็คชื่อ — note "คาบ N · วิชา" → note = วิชา · _p = คาบ · ผู้บันทึก = ครูที่เช็คชื่อ (tch)
+  function skipFix(h) { if (!h || !(h.byId === 'skip' || h.src)) return h; var m = /^คาบ (\S+)(?: · (.*))?$/.exec(h.note || ''); var o = Object.assign({}, h, { _src: 1 }); if (m) { o._p = m[1]; o.note = m[2] || ''; } if (h.src && h.by !== undefined) o.who = 't'; return o; }
+  return { skipFix: skipFix, tmOf: tmOf, who: who, whoTag: whoTag, phc: PHC, ask: ask, back: back, councilAv: councilAv, ring: ring, API: API, VERSION: VERSION, $: $, store: store, esc: esc, toast: toast, thD: thD, api: api, setErr: function (f) { onErr = f; }, IC: IC, chrome: chrome, status: status, roster: roster, Picker: Picker, norm: norm, hit: hit, mark: mark, PRE: PRE };
 })();
