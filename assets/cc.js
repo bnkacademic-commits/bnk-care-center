@@ -4,7 +4,7 @@
    · ตัวเลือกนักเรียน: กรองห้อง (รวมทุกห้อง) + ค้นชื่อ + รายชื่อที่เลือกไว้ก่อนบันทึก */
 var CC = (function () {
   var API = "https://bnk-care-center-api.bnkschool.workers.dev";
-  var VERSION = "1.10.2.241126";
+  var VERSION = "1.10.3.241126";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var store = {
     get: function (k) { try { return localStorage.getItem("bnkcc_" + k) || ""; } catch (e) { return ""; } },
@@ -52,7 +52,7 @@ var CC = (function () {
   function toggleTheme() { var t = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"; store.set("theme", t); applyTheme(t); }
 
   // ---------- ติดตั้งเป็นแอป (PWA) ----------
-  var deferred = null, NOAPP = false;
+  var deferred = null, NOAPP = false, APPICON = "icons/icon-192.png"; // 1.10.3: หน้าดูคะแนนใช้ไอคอน "ดูคะแนน"
   function standalone() { try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch (e) { return false; } }
   function updInstall() { var b = $("#btnInstall"); if (b) b.hidden = standalone(); }
   window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); if (!NOAPP) deferred = e; updInstall(); });
@@ -63,7 +63,7 @@ var CC = (function () {
       : and ? ["กดปุ่มเมนู <b>⋮</b> มุมขวาบนของ Chrome", "เลือก <b>ติดตั้งแอป</b> หรือ <b>เพิ่มลงในหน้าจอหลัก</b>", "กด <b>ติดตั้ง</b>"]
         : ["ใช้ <b>Google Chrome</b> หรือ <b>Microsoft Edge</b>", "กดไอคอนติดตั้งท้ายช่องที่อยู่เว็บ หรือเมนู <b>⋮ / …</b> → <b>ติดตั้ง…</b>", "กด <b>ติดตั้ง</b>"];
     var m = document.createElement("div"); m.className = "mdl";
-    m.innerHTML = '<div class="box" role="dialog" aria-modal="true"><div class="hd2"><img src="icons/icon-192.png" alt=""><div><b style="font-size:17px">ติดตั้งเป็นแอป</b><div class="mut">เปิดจากหน้าจอหลักได้เหมือนแอปทั่วไป</div></div></div><ol>' + steps.map(function (s) { return "<li>" + s + "</li>"; }).join("") + '</ol><button class="btn blk" type="button">เข้าใจแล้ว</button></div>';
+    m.innerHTML = '<div class="box" role="dialog" aria-modal="true"><div class="hd2"><img src="' + APPICON + '" alt=""><div><b style="font-size:17px">ติดตั้งเป็นแอป</b><div class="mut">เปิดจากหน้าจอหลักได้เหมือนแอปทั่วไป</div></div></div><ol>' + steps.map(function (s) { return "<li>" + s + "</li>"; }).join("") + '</ol><button class="btn blk" type="button">เข้าใจแล้ว</button></div>';
     m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("button")) m.remove(); });
     document.body.appendChild(m);
   }
@@ -119,7 +119,7 @@ var CC = (function () {
   }
   // แถบบนของทุกหน้า: ชื่อหน้า + สถานะ + ปุ่มติดตั้งแอป + ปุ่มธีม
   function chrome(title, sub, o) {
-    o = o || {}; if (o.noApp) NOAPP = true;
+    o = o || {}; if (o.noApp) NOAPP = true; if (o.appIcon) APPICON = o.appIcon;
     var top = $("#top");
     top.innerHTML = '<div class="ttl"><img src="icons/favicon-32.png" alt=""><div>' + esc(title) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div></div><span class="st off" id="st" hidden></span>' +
       (o.noApp ? '' : '<button type="button" class="ib" id="btnInstall" title="ติดตั้งเป็นแอปบนเครื่องนี้" aria-label="ติดตั้งเป็นแอป">' + IC.dl + '</button>') + '<button type="button" class="ib" id="btnTheme" aria-label="เปลี่ยนธีม"></button>';
